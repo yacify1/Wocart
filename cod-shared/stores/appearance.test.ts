@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEX,
+  appearanceDetailColorsProblem,
   appearanceLocaleProblem,
   appearanceSettingsOf,
   appearanceSettingsProblem,
@@ -21,6 +22,7 @@ const valid = (): AppearanceSettings => ({
   colorSchemes: clone(APPEARANCE_DEFAULT_SCHEMES),
   pageScheme: "scheme-1",
   hideLogo: false,
+  hideHeaderText: false,
   searchEnabled: true,
   headerHtml: "",
   logoAlignment: "right",
@@ -282,6 +284,55 @@ describe("logo alignment and home sections", () => {
     });
     expect(appearanceThemeSettingsOf({ ...flat, hideHeroImages: true })?.sections?.hero).toEqual({ hidden: true });
     expect(appearanceThemeSettingsOf({ ...flat, hideHeroImages: true, homeHeroHidden: false })?.sections?.hero).toBeUndefined();
+  });
+});
+
+describe("detail colors", () => {
+  it("accepts only the four known colors as hex or auto", () => {
+    expect(appearanceDetailColorsProblem(undefined)).toBeNull();
+    expect(
+      appearanceDetailColorsProblem({
+        secondaryButton: "#123456",
+        offer: null,
+        oldPrice: "#abcdef",
+        newPrice: "#fedcba",
+      }),
+    ).toBeNull();
+    expect(appearanceDetailColorsProblem({ glow: "#ffffff" })).toMatch(/not a detail color/);
+    expect(appearanceDetailColorsProblem({ offer: "gold" })).toMatch(/needs a hex color/);
+  });
+
+  it("writes flat theme keys and removes them when returned to auto", () => {
+    const settings: AppearanceSettings = {
+      ...valid(),
+      detailColors: { secondaryButton: "#123456", offer: "#abcdef", oldPrice: null, newPrice: "#fedcba" },
+    };
+    expect(appearanceSettingsToTheme(settings)).toMatchObject({
+      secondaryButtonColor: "#123456",
+      offerColor: "#abcdef",
+      priceNewColor: "#fedcba",
+    });
+    expect(appearanceSettingsToTheme(settings)).not.toHaveProperty("priceOldColor");
+    expect(appearanceSettingsToRemove(settings)).toEqual(
+      expect.arrayContaining(["priceOldColor"]),
+    );
+    expect(appearanceSettingsToRemove(settings)).not.toContain("secondaryButtonColor");
+  });
+
+  it("reads saved colors from the flat keys and prefers an explicit nested reset", () => {
+    const saved = appearanceThemeSettingsOf({
+      ...appearanceSettingsToTheme(valid()),
+      secondaryButtonColor: "#123456",
+      priceOldColor: "#abcdef",
+    });
+    expect(saved?.detailColors).toEqual({ secondaryButton: "#123456", oldPrice: "#abcdef" });
+    expect(appearanceThemeSettingsOf({ ...valid(), detailColors: { offer: null } })?.detailColors).toEqual({ offer: null });
+  });
+
+  it("keeps picked colors when only a header control is saved", () => {
+    const current: AppearanceSettings = { ...valid(), detailColors: { offer: "#abcdef" }, hideHeaderText: true };
+    const merged = mergeAppearance(current, { colorSchemes: current.colorSchemes, pageScheme: "scheme-1", hideLogo: true });
+    expect(merged.settings).toMatchObject({ detailColors: { offer: "#abcdef" }, hideHeaderText: true, hideLogo: true });
   });
 });
 

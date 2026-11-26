@@ -14,6 +14,8 @@ import {
   APPEARANCE_HEX,
   type AppearanceColorRole,
   type AppearanceColorScheme,
+  type AppearanceDetailColorKey,
+  type AppearanceDetailColors,
   type AppearanceLogoAlignment,
   type AppearanceTextKey,
 } from "../../../../../cod-shared/stores/appearance";
@@ -24,20 +26,35 @@ const COLOR_LABEL_KEYS: Record<AppearanceColorRole, string> = {
   text: "store.appearance_color_text",
   heading: "store.appearance_color_heading",
   accent: "store.appearance_color_accent",
-  button: "store.appearance_color_button",
+  button: "store.appearance_color_primary",
   buttonText: "store.appearance_color_buttonText",
   border: "store.appearance_color_border",
 };
 
-const TEXT_FIELDS: { key: AppearanceTextKey; labelKey: string }[] = [
+const TEXT_FIELDS: { key: AppearanceTextKey; labelKey: string; hintKey?: string }[] = [
   { key: "heroTitle", labelKey: "store.appearance_text_heroTitle" },
   { key: "heroSubtitle", labelKey: "store.appearance_text_heroSubtitle" },
-  { key: "heroCtaPrimary", labelKey: "store.appearance_text_heroCtaPrimary" },
-  { key: "heroCtaSecondary", labelKey: "store.appearance_text_heroCtaSecondary" },
+  { key: "heroCtaPrimary", labelKey: "store.appearance_text_heroCtaPrimary", hintKey: "store.appearance_text_heroCtaPrimary_hint" },
+  { key: "heroCtaSecondary", labelKey: "store.appearance_text_heroCtaSecondary", hintKey: "store.appearance_text_heroCtaSecondary_hint" },
   { key: "bannerTag", labelKey: "store.appearance_text_bannerTag" },
-  { key: "bannerTitle", labelKey: "store.appearance_text_bannerTitle" },
+  { key: "bannerTitle", labelKey: "store.appearance_text_bannerTitle", hintKey: "store.appearance_text_bannerTitle_hint" },
   { key: "bannerSub", labelKey: "store.appearance_text_bannerSub" },
 ];
+
+const DETAIL_COLOR_FIELDS: { key: AppearanceDetailColorKey; labelKey: string }[] = [
+  { key: "secondaryButton", labelKey: "store.appearance_color_secondaryButton" },
+  { key: "offer", labelKey: "store.appearance_color_offer" },
+  { key: "oldPrice", labelKey: "store.appearance_color_oldPrice" },
+  { key: "newPrice", labelKey: "store.appearance_color_newPrice" },
+];
+
+function autoDetailColor(key: AppearanceDetailColorKey, scheme: AppearanceColorScheme | undefined): string {
+  const colors = scheme?.colors;
+  if (key === "secondaryButton") return colors?.heading ?? "#0f1626";
+  if (key === "oldPrice") return colors?.text ?? "#8a8f98";
+  if (key === "newPrice") return colors?.accent ?? "#c8102e";
+  return "#f2c14e";
+}
 
 const LOOKS = [
   { id: "scheme-1", labelKey: "store.appearance_look_original", swatch: "#ffffff" },
@@ -66,10 +83,16 @@ function ColorField({
   label,
   value,
   onChange,
+  isAuto = false,
+  autoLabel,
+  onClear,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  isAuto?: boolean;
+  autoLabel?: string;
+  onClear?: () => void;
 }) {
   const [text, setText] = useState(value);
 
@@ -110,17 +133,32 @@ function ColorField({
         maxLength={7}
         className="h-7 w-24 shrink-0 px-2 font-mono text-xs uppercase"
       />
+      {onClear && (
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={isAuto}
+          aria-label={`${label} ${autoLabel ?? "auto"}`}
+          className={`shrink-0 rounded-md border px-2 py-1 text-[0.65rem] font-semibold ${
+            isAuto ? "border-primary/40 bg-primary/[0.06] text-foreground" : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {autoLabel ?? "Auto"}
+        </button>
+      )}
     </div>
   );
 }
 
 function AppearancePreview({
   scheme,
+  detailColors,
   title,
   subtitle,
   cta,
 }: {
   scheme: AppearanceColorScheme | undefined;
+  detailColors: AppearanceDetailColors;
   title: string;
   subtitle: string;
   cta: string;
@@ -128,6 +166,10 @@ function AppearancePreview({
   const t = useT("settings");
   if (!scheme) return null;
   const colors = scheme.colors;
+  const secondary = detailColors.secondaryButton ?? autoDetailColor("secondaryButton", scheme);
+  const oldPrice = detailColors.oldPrice ?? autoDetailColor("oldPrice", scheme);
+  const newPrice = detailColors.newPrice ?? autoDetailColor("newPrice", scheme);
+  const offer = detailColors.offer ?? autoDetailColor("offer", scheme);
 
   return (
     <div className="space-y-1.5">
@@ -142,20 +184,39 @@ function AppearancePreview({
         <p className="mt-1 text-xs leading-relaxed" style={{ color: colors.text }}>
           {subtitle}
         </p>
-        <p className="mt-3 text-sm font-bold" style={{ color: colors.accent }}>
-          {t("store.appearance_preview_price")}
+        <p className="mt-3 flex items-center gap-2 text-sm">
+          <span className="text-xs line-through" style={{ color: oldPrice }}>
+            {t("store.appearance_preview_was")}
+          </span>
+          <span className="text-base font-bold" style={{ color: newPrice }}>
+            {t("store.appearance_preview_price")}
+          </span>
         </p>
+        <span
+          className="mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
+          style={{ background: offer, color: "#0f1626" }}
+        >
+          {t("store.appearance_preview_offer")}
+        </span>
         <div
           className="mt-3 rounded-lg border px-3 py-2 text-xs"
           style={{ borderColor: colors.border, color: colors.text }}
         >
           {t("store.appearance_preview_field")}
         </div>
-        <div
-          className="mt-2 rounded-lg px-3 py-2 text-center text-xs font-bold"
-          style={{ background: colors.button, color: colors.buttonText }}
-        >
-          {cta}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <span
+            className="rounded-lg px-3 py-2 text-center text-xs font-bold"
+            style={{ background: colors.button, color: colors.buttonText }}
+          >
+            {cta}
+          </span>
+          <span
+            className="rounded-lg border px-3 py-2 text-center text-xs font-bold"
+            style={{ color: secondary, borderColor: secondary }}
+          >
+            {t("store.appearance_preview_secondary_cta")}
+          </span>
         </div>
       </div>
     </div>
@@ -171,10 +232,12 @@ export function AppearanceSettings() {
   const [schemes, setSchemes] = useState<AppearanceColorScheme[]>([]);
   const [pageScheme, setPageScheme] = useState("");
   const [selected, setSelected] = useState("");
+  const [detailColors, setDetailColors] = useState<AppearanceDetailColors>({});
   const [textLocale, setTextLocale] = useState<StoreLocale>("ar");
   const [drafts, setDrafts] = useState<Partial<Record<StoreLocale, Record<string, string>>>>({});
   const [controls, setControls] = useState({
     hideLogo: false,
+    hideHeaderText: false,
     searchEnabled: true,
     headerHtml: "",
     logoAlignment: "right" as AppearanceLogoAlignment,
@@ -184,6 +247,7 @@ export function AppearanceSettings() {
     setData(saved);
     setSchemes(cloneSchemes(saved.colorSchemes));
     setPageScheme(saved.pageScheme);
+    setDetailColors({ ...(saved.detailColors ?? {}) });
     setSelected((id) =>
       initial || !saved.colorSchemes.some((scheme) => scheme.id === id)
         ? saved.pageScheme || saved.colorSchemes[0]?.id || ""
@@ -195,6 +259,7 @@ export function AppearanceSettings() {
     }
     setControls({
       hideLogo: saved.hideLogo,
+      hideHeaderText: saved.hideHeaderText,
       searchEnabled: saved.searchEnabled,
       headerHtml: saved.headerHtml,
       logoAlignment: saved.logoAlignment ?? "right",
@@ -252,13 +317,14 @@ export function AppearanceSettings() {
   }
 
   async function saveColors() {
-    const payload: SaveAppearanceInput = { colorSchemes: schemes, pageScheme };
+    const payload: SaveAppearanceInput = { colorSchemes: schemes, pageScheme, detailColors };
     applySaved(await saveAppearance(payload));
   }
 
   async function saveControls() {
     const payload: SaveAppearanceInput = {
       hideLogo: controls.hideLogo,
+      hideHeaderText: controls.hideHeaderText,
       searchEnabled: controls.searchEnabled,
       headerHtml: controls.headerHtml,
       logoAlignment: controls.logoAlignment,
@@ -396,8 +462,37 @@ export function AppearanceSettings() {
                 />
               ))}
             </div>
+            <div className="space-y-2 border-t border-border pt-4">
+              <div>
+                <span className="block text-sm font-medium text-foreground">
+                  {t("store.appearance_detail_colors_label")}
+                </span>
+                <p className="text-xs text-muted-foreground">{t("store.appearance_detail_colors_hint")}</p>
+              </div>
+              <div className="grid gap-2.5 xl:grid-cols-2">
+                {DETAIL_COLOR_FIELDS.map((field) => {
+                  const color = detailColors[field.key];
+                  return (
+                    <ColorField
+                      key={field.key}
+                      label={t(field.labelKey)}
+                      value={color ?? autoDetailColor(field.key, current)}
+                      isAuto={color == null}
+                      autoLabel={t("store.appearance_color_auto")}
+                      onClear={() =>
+                        setDetailColors((all) => ({ ...all, [field.key]: null }))
+                      }
+                      onChange={(value) =>
+                        setDetailColors((all) => ({ ...all, [field.key]: value }))
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
             <AppearancePreview
               scheme={current}
+              detailColors={detailColors}
               title={previewTitle}
               subtitle={previewSubtitle}
               cta={previewCta}
@@ -413,50 +508,68 @@ export function AppearanceSettings() {
         onSave={saveControls}
       >
         <div className="space-y-5">
-          <SwitchField
-            label={t("store.appearance_control_hideLogo")}
-            help={t("store.appearance_control_hideLogo_hint")}
-            checked={controls.hideLogo}
-            onChange={(hideLogo) => setControls((current) => ({ ...current, hideLogo }))}
-          />
-          <SwitchField
-            label={t("store.appearance_control_searchEnabled")}
-            help={t("store.appearance_control_searchEnabled_hint")}
-            checked={controls.searchEnabled}
-            onChange={(searchEnabled) => setControls((current) => ({ ...current, searchEnabled }))}
-          />
-          <FieldRow
-            label={t("store.appearance_control_logoAlignment")}
-            help={t("store.appearance_control_logoAlignment_hint")}
-          >
-            <Select
-              value={controls.logoAlignment}
-              onChange={(event) =>
-                setControls((current) => ({ ...current, logoAlignment: event.target.value as AppearanceLogoAlignment }))
-              }
-            >
-              {APPEARANCE_LOGO_ALIGNMENTS.map((alignment) => (
-                <option key={alignment} value={alignment}>
-                  {t(`store.appearance_logo_${alignment}`)}
-                </option>
-              ))}
-            </Select>
-          </FieldRow>
-          <Field
-            label={t("store.appearance_control_headerHtml")}
-            hint={`${controls.headerHtml.length}/${APPEARANCE_HEADER_HTML_MAX}`}
-          >
-            <Textarea
-              value={controls.headerHtml}
-              maxLength={APPEARANCE_HEADER_HTML_MAX}
-              rows={3}
-              spellCheck={false}
-              onChange={(event) => setControls((current) => ({ ...current, headerHtml: event.target.value }))}
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t("store.appearance_control_headerHtml_hint")}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("store.appearance_group_header")}
             </p>
-          </Field>
+            <FieldRow
+              label={t("store.appearance_control_logoAlignment")}
+              help={t("store.appearance_control_logoAlignment_hint")}
+            >
+              <Select
+                value={controls.logoAlignment}
+                onChange={(event) =>
+                  setControls((current) => ({ ...current, logoAlignment: event.target.value as AppearanceLogoAlignment }))
+                }
+              >
+                {APPEARANCE_LOGO_ALIGNMENTS.map((alignment) => (
+                  <option key={alignment} value={alignment}>
+                    {t(`store.appearance_logo_${alignment}`)}
+                  </option>
+                ))}
+              </Select>
+            </FieldRow>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SwitchField
+                label={t("store.appearance_control_hideLogo")}
+                help={t("store.appearance_control_hideLogo_hint")}
+                checked={controls.hideLogo}
+                onChange={(hideLogo) => setControls((current) => ({ ...current, hideLogo }))}
+              />
+              <SwitchField
+                label={t("store.appearance_control_hideHeaderText")}
+                help={t("store.appearance_control_hideHeaderText_hint")}
+                checked={controls.hideHeaderText}
+                onChange={(hideHeaderText) => setControls((current) => ({ ...current, hideHeaderText }))}
+              />
+            </div>
+          </div>
+          <div className="space-y-3 border-t border-border pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("store.appearance_group_search")}
+            </p>
+            <SwitchField
+              label={t("store.appearance_control_searchEnabled")}
+              help={t("store.appearance_control_searchEnabled_hint")}
+              checked={controls.searchEnabled}
+              onChange={(searchEnabled) => setControls((current) => ({ ...current, searchEnabled }))}
+            />
+            <Field
+              label={t("store.appearance_control_headerHtml")}
+              hint={`${controls.headerHtml.length}/${APPEARANCE_HEADER_HTML_MAX}`}
+            >
+              <Textarea
+                value={controls.headerHtml}
+                maxLength={APPEARANCE_HEADER_HTML_MAX}
+                rows={3}
+                spellCheck={false}
+                onChange={(event) => setControls((current) => ({ ...current, headerHtml: event.target.value }))}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("store.appearance_control_headerHtml_hint")}
+              </p>
+            </Field>
+          </div>
         </div>
       </SettingsSection>
 
@@ -503,6 +616,9 @@ export function AppearanceSettings() {
                     onChange={(event) => updateText(field.key, event.target.value)}
                   />
                 )}
+                {field.hintKey && (
+                  <p className="mt-1 text-xs text-muted-foreground">{t(field.hintKey)}</p>
+                )}
               </Field>
             );
           })}
@@ -510,6 +626,7 @@ export function AppearanceSettings() {
 
         <AppearancePreview
           scheme={current}
+          detailColors={detailColors}
           title={previewTitle}
           subtitle={previewSubtitle}
           cta={previewCta}

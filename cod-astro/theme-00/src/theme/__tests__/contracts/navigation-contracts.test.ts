@@ -115,6 +115,33 @@ describe("the header and the footer's menu", () => {
     expect(html).not.toContain("magnifying-glass");
     expect(html).toMatch(/<div class="header-html"[^>]*><strong>Sale<\/strong><\/div>/);
   });
+
+  it("hides only the store name when there is no logo image, leaving search and alignment alone", async () => {
+    const html = await (await AstroContainer.create()).renderToString(Header, {
+      props: { ...HEADER_PROPS, showSearch: true, storeMenu: null },
+      locals: locals({ config: { ...TEST_CONFIG, themeSettings: { hideHeaderText: true, logoAlignment: "center" } } }),
+    });
+    expect(html).not.toContain("header-logo");
+    expect(html).not.toContain("header-name");
+    expect(html).toContain("magnifying-glass");
+    expect(html).toMatch(/data-logo-align="center"/);
+  });
+
+  it("keeps a logo image when the store name is hidden", async () => {
+    const html = await (await AstroContainer.create()).renderToString(Header, {
+      props: { ...HEADER_PROPS, showSearch: true, storeMenu: null },
+      locals: locals({
+        config: {
+          ...TEST_CONFIG,
+          logo: { key: "logo", url: "https://media.boutique.test/logo.webp", width: 480, height: 160 },
+          themeSettings: { hideHeaderText: true },
+        },
+      }),
+    });
+    expect(html).toContain("header-logo");
+    expect(html).toContain("logo.webp");
+    expect(html).not.toContain("header-name");
+  });
 });
 
 describe("the layout", () => {
@@ -203,6 +230,7 @@ describe("the theme's settings", () => {
       cardImageRatio: "portrait",
       cardButton: true,
       hideLogo: false,
+      hideHeaderText: false,
       searchEnabled: true,
       hideHeroImages: false,
       headerHtml: "",

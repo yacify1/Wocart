@@ -211,9 +211,14 @@ describe("the storefront config", () => {
       colorSchemes: APPEARANCE_DEFAULT_SCHEMES,
       pageScheme: "scheme-6",
       hideLogo: true,
+      hideHeaderText: true,
       searchEnabled: false,
       logoAlignment: "left",
       headerHtml: '<strong class="promo">Sale</strong>',
+      secondaryButtonColor: "#123456",
+      offerColor: "#abcdef",
+      priceOldColor: "#777777",
+      priceNewColor: "#fedcba",
       homeHeroHidden: true,
       homeHeroImage: { key: "products/hero.webp" },
       homeFeaturesBarHidden: true,
@@ -224,9 +229,14 @@ describe("the storefront config", () => {
     expect(config!.themeSettings).toMatchObject({
       pageScheme: "scheme-6",
       hideLogo: true,
+      hideHeaderText: true,
       searchEnabled: false,
       logoAlignment: "left",
       headerHtml: '<strong class="promo">Sale</strong>',
+      secondaryButtonColor: "#123456",
+      offerColor: "#abcdef",
+      priceOldColor: "#777777",
+      priceNewColor: "#fedcba",
       homeHeroHidden: true,
       homeHeroImage: { key: "products/hero.webp" },
       homeFeaturesBarHidden: true,
@@ -250,6 +260,23 @@ describe("the storefront config", () => {
         hero: { hidden: true, image: { key: "products/hero.webp", alt: "New arrival" } },
         marquee: { image: { key: "landing/strip.webp" } },
       },
+    });
+  });
+
+  it("reads the detail colors the dashboard saved as flat theme keys", async () => {
+    const id = await seedStore();
+    await saveThemeSettings(db, id, "theme-00", {
+      colorSchemes: APPEARANCE_DEFAULT_SCHEMES,
+      pageScheme: "scheme-1",
+      hideHeaderText: true,
+      secondaryButtonColor: "#123456",
+      offerColor: "#abcdef",
+      priceNewColor: "#fedcba",
+    });
+
+    expect(appearanceThemeSettingsOf(await getThemeSettings(db, id, "theme-00"))).toMatchObject({
+      hideHeaderText: true,
+      detailColors: { secondaryButton: "#123456", offer: "#abcdef", newPrice: "#fedcba" },
     });
   });
 

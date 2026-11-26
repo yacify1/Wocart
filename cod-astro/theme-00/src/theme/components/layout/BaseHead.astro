@@ -12,7 +12,7 @@ import { ClientRouter } from "astro:transitions";
 import { openGraphLocale } from "@/theme/utils/seo";
 import ThemeStyles from "@wocart/theme/astro/ThemeStyles.astro";
 import type { ColorScheme } from "@wocart/theme";
-import type { ThemeFont } from "@/theme/appearance";
+import { detailColorStyles, type ThemeDetailColors, type ThemeFont } from "@/theme/appearance";
 
 interface Props {
   title: string;
@@ -34,6 +34,7 @@ interface Props {
   fonts: { body: ThemeFont; heading: ThemeFont };
   /** The corners setting's radii. */
   radii: Readonly<Record<"media" | "panel" | "input" | "button" | "tag", string>>;
+  detailColors: ThemeDetailColors;
   /** The page's script: only that subset of the theme face is preloaded. */
   isRTL: boolean;
   /** Client-side navigation to and from this page. */
@@ -43,8 +44,9 @@ interface Props {
   preloadImages?: string[];
 }
 
-const { title, description, ogImage, noindex, config, locale, canonical, alternates, schemes, themeColor, fonts, radii, isRTL, preloadImages, softNavigation = true } = Astro.props;
+const { title, description, ogImage, noindex, config, locale, canonical, alternates, schemes, themeColor, fonts, radii, detailColors, isRTL, preloadImages, softNavigation = true } = Astro.props;
 const subset = isRTL ? "arabic" : "latin";
+const detailCss = detailColorStyles(detailColors);
 
 ---
 
@@ -113,6 +115,7 @@ const subset = isRTL ? "arabic" : "latin";
       --r-input: ${radii.input};
       --r-button: ${radii.button};
       --r-tag: ${radii.tag};
+      ${detailCss}
     }
   `} />
 </head>

@@ -43,6 +43,7 @@ import {
   mergeAppearance,
   sanitizeHeaderHtml,
   type AppearanceColorScheme,
+  type AppearanceDetailColors,
   type AppearanceHomeSectionKey,
   type AppearanceLogoAlignment,
   type AppearanceSectionEdits,
@@ -94,6 +95,14 @@ const sectionEditSchema = z.object({
   image: appearanceImageSchema.nullable().optional(),
 });
 
+const detailColor = z.string().regex(APPEARANCE_HEX).nullable().optional();
+const detailColorsSchema = z.object({
+  secondaryButton: detailColor,
+  offer: detailColor,
+  oldPrice: detailColor,
+  newPrice: detailColor,
+});
+
 const sectionStateSchema = z.object({
   hidden: z.boolean(),
   image: z
@@ -113,10 +122,12 @@ const appearanceSchema = z.object({
   colorSchemes: z.array(colorSchemeSchema),
   pageScheme: z.string(),
   hideLogo: z.boolean(),
+  hideHeaderText: z.boolean(),
   searchEnabled: z.boolean(),
   headerHtml: z.string(),
   logoAlignment: logoAlignmentSchema,
   sections: z.record(z.enum(SECTION_KEYS), sectionStateSchema),
+  detailColors: detailColorsSchema,
   texts: z.record(z.string(), z.record(z.string(), z.string())),
 });
 
@@ -124,10 +135,12 @@ const saveAppearanceSchema = z.object({
   colorSchemes: z.array(colorSchemeSchema).min(1).max(APPEARANCE_MAX_SCHEMES).optional(),
   pageScheme: z.string().optional(),
   hideLogo: z.boolean().optional(),
+  hideHeaderText: z.boolean().optional(),
   searchEnabled: z.boolean().optional(),
   headerHtml: z.string().max(APPEARANCE_HEADER_HTML_MAX).optional(),
   logoAlignment: logoAlignmentSchema.optional(),
   sections: z.record(z.enum(SECTION_KEYS), sectionEditSchema).optional(),
+  detailColors: detailColorsSchema.optional(),
   texts: z
     .object({
       locale: z.enum(STORE_LOCALES),
@@ -177,10 +190,12 @@ async function appearanceOf(db: ReturnType<typeof getDb>, store: StoreRow, env: 
     colorSchemes,
     pageScheme,
     hideLogo: saved?.hideLogo ?? false,
+    hideHeaderText: saved?.hideHeaderText ?? false,
     searchEnabled: saved?.searchEnabled ?? true,
     headerHtml: saved?.headerHtml ?? "",
     logoAlignment: saved?.logoAlignment ?? "right",
     sections,
+    detailColors: (saved?.detailColors ?? {}) as AppearanceDetailColors,
     texts,
   };
 }
@@ -208,10 +223,12 @@ export async function saveAppearance(c: Context<AppContext>) {
     colorSchemes,
     pageScheme,
     hideLogo: body.hideLogo ?? saved?.hideLogo ?? false,
+    hideHeaderText: body.hideHeaderText ?? saved?.hideHeaderText ?? false,
     searchEnabled: body.searchEnabled ?? saved?.searchEnabled ?? true,
     headerHtml: sanitizeHeaderHtml(body.headerHtml ?? saved?.headerHtml ?? ""),
     logoAlignment: body.logoAlignment ?? saved?.logoAlignment ?? "right",
     sections: body.sections as AppearanceSectionEdits | undefined,
+    detailColors: body.detailColors as AppearanceDetailColors | undefined,
   });
   if (merged.error || !merged.settings) {
     throw new ValidationError(merged.error ?? "The colors cannot be saved", ERROR_CODES.VALIDATION_FAILED);

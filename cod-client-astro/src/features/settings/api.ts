@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api";
 import type {
   AppearanceColorScheme,
+  AppearanceDetailColors,
   AppearanceLogoAlignment,
   AppearanceSectionEdits,
 } from "../../../../cod-shared/stores/appearance";
@@ -38,10 +39,12 @@ export interface SaveAppearanceInput {
   colorSchemes?: AppearanceColorScheme[];
   pageScheme?: string;
   hideLogo?: boolean;
+  hideHeaderText?: boolean;
   searchEnabled?: boolean;
   headerHtml?: string;
   logoAlignment?: AppearanceLogoAlignment;
   sections?: AppearanceSectionEdits;
+  detailColors?: AppearanceDetailColors;
   /** One language's text edits; an empty string removes that edit. */
   texts?: { locale: StoreLocale; values: Record<string, string> };
 }

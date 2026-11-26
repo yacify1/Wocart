@@ -34,9 +34,11 @@ const appearance = () => ({
   colorSchemes: JSON.parse(JSON.stringify(APPEARANCE_DEFAULT_SCHEMES)),
   pageScheme: "scheme-1",
   hideLogo: false,
+  hideHeaderText: false,
   searchEnabled: true,
   headerHtml: "",
   logoAlignment: "right",
+  detailColors: {},
   texts: {},
 });
 
@@ -97,9 +99,21 @@ describe("AppearanceSettings", () => {
     await click(saveButton(section("store.appearance_colors_title")));
 
     expect(seam.calls).toHaveLength(1);
-    expect(Object.keys(seam.calls[0]!).sort()).toEqual(["colorSchemes", "pageScheme"]);
+    expect(Object.keys(seam.calls[0]!).sort()).toEqual(["colorSchemes", "detailColors", "pageScheme"]);
     expect(seam.calls[0]!.colorSchemes[0].colors.background).toBe("#123456");
     expect(host.querySelectorAll<HTMLInputElement>('input[aria-label$=" hex"]')[0]!.value).toBe("#123456");
+  });
+
+  it("saves a picked detail color with the scheme colors", async () => {
+    await render();
+    const offer = host.querySelector<HTMLInputElement>('input[aria-label="store.appearance_color_offer hex"]')!;
+    await setValue(offer, "#abcdef", "input");
+    await act(async () => offer.dispatchEvent(new FocusEvent("blur", { bubbles: true })));
+
+    await click(saveButton(section("store.appearance_colors_title")));
+
+    expect(seam.calls[0]!.detailColors.offer).toBe("#abcdef");
+    expect(seam.calls[0]!.colorSchemes).toBeDefined();
   });
 
   it("accepts a hex typed without the hash when the field loses focus", async () => {
@@ -134,6 +148,20 @@ describe("AppearanceSettings", () => {
 
     expect(seam.calls).toHaveLength(1);
     expect(seam.calls[0]!.logoAlignment).toBe("left");
+    expect(seam.calls[0]!.colorSchemes).toBeUndefined();
+    expect(seam.calls[0]!.texts).toBeUndefined();
+  });
+
+  it("saves the hide-header-text switch without touching colors or texts", async () => {
+    await render();
+    const toggle = [...host.querySelectorAll<HTMLButtonElement>('[role="switch"]')].find((node) =>
+      node.parentElement?.textContent?.includes("store.appearance_control_hideHeaderText"),
+    )!;
+    await click(toggle);
+
+    await click(saveButton(section("store.appearance_storefront_title")));
+
+    expect(seam.calls[0]!.hideHeaderText).toBe(true);
     expect(seam.calls[0]!.colorSchemes).toBeUndefined();
     expect(seam.calls[0]!.texts).toBeUndefined();
   });

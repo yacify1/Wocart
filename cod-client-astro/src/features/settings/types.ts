@@ -3,6 +3,7 @@ import type { StoreLocale } from "../../../../cod-shared/i18n/locales";
 import type { LocaleRow, StoreLanguage } from "../../../../cod-shared/stores/settings";
 import type {
   AppearanceColorScheme,
+  AppearanceDetailColors,
   AppearanceHomeSectionKey,
   AppearanceLogoAlignment,
 } from "../../../../cod-shared/stores/appearance";
@@ -69,6 +70,8 @@ export interface StoreAppearance {
   colorSchemes: AppearanceColorScheme[];
   pageScheme: string;
   hideLogo: boolean;
+  /** Hide the store name when the header has no image logo. */
+  hideHeaderText: boolean;
   searchEnabled: boolean;
   /** Sanitized HTML the store puts above its header. */
   headerHtml: string;
@@ -76,6 +79,7 @@ export interface StoreAppearance {
   logoAlignment: AppearanceLogoAlignment;
   /** One entry for every home section, including an image ready to preview. */
   sections: Record<AppearanceHomeSectionKey, { hidden: boolean; image: MediaImage | null }>;
+  detailColors: AppearanceDetailColors;
   /** Saved text edits, `{ ar: { heroTitle: "…" } }`. */
   texts: Partial<Record<StoreLocale, Record<string, string>>>;
 }

@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and place a short, sanitized HTML strip above the header. The reference theme
   applies each setting on the storefront, with the logo on the right by default
   in Arabic.
+- The Appearance tab also controls the secondary button, offer badge, old price
+  and new price colors. Each one can stay on Auto and follow the chosen scheme,
+  or be set to one color that holds on every scheme. A separate switch hides
+  just the store name when the header has no logo image, without hiding the
+  logo, changing its alignment or turning search off.
 
 ### Changed
 

@@ -58,6 +58,27 @@ export const SCHEME_OF = { light: "scheme-1", stone: "scheme-2", sand: "scheme-3
 /** The page's scheme unless the merchant picks another. */
 export const PAGE_SCHEME: SchemeId = "scheme-1";
 
+export type ThemeDetailColors = Partial<
+  Record<"secondaryButtonColor" | "offerColor" | "priceOldColor" | "priceNewColor", unknown>
+>;
+
+const DETAIL_COLOR_VARIABLES: Record<keyof ThemeDetailColors, string> = {
+  secondaryButtonColor: "--wc-detail-secondary-button",
+  offerColor: "--wc-detail-offer",
+  priceOldColor: "--wc-detail-price-old",
+  priceNewColor: "--wc-detail-price-new",
+};
+
+export function detailColorStyles(values: ThemeDetailColors): string {
+  return Object.entries(DETAIL_COLOR_VARIABLES)
+    .map(([key, variable]) => {
+      const color = values[key as keyof ThemeDetailColors];
+      return typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color) ? `${variable}: ${color.toLowerCase()};` : "";
+    })
+    .filter(Boolean)
+    .join("\n      ");
+}
+
 /** The sizes the theme gives the platform's style steps and widths, in pixels. */
 export const THEME_STYLE: ThemeStyle = styleSizes;
 

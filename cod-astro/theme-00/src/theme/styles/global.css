@@ -168,6 +168,12 @@
   --clr-on-primary: var(--wc-color-button-text);
   --clr-accent: var(--wc-color-accent);
   --clr-on-accent: var(--wc-color-heading);
+  --clr-secondary-button: var(--wc-detail-secondary-button, var(--clr-ink));
+  --clr-on-secondary-button: var(--clr-bg);
+  --clr-offer: var(--wc-detail-offer, var(--clr-highlight));
+  --clr-on-offer: var(--clr-on-highlight);
+  --clr-price-old: var(--wc-detail-price-old, var(--clr-muted));
+  --clr-price-new: var(--wc-detail-price-new, var(--clr-accent));
   --clr-nav-bg: color-mix(in oklab, var(--wc-color-background) 94%, transparent);
   /* A photo's ground while it loads, and behind a photo that does not fill. */
   --clr-photo: color-mix(in oklab, var(--wc-color-text) 6%, var(--wc-color-background));
@@ -179,6 +185,8 @@
   :root,
   .wc-scheme {
     --clr-on-accent: oklch(from var(--wc-color-accent) clamp(0, (0.7 - l) * 1000, 1) 0 0);
+    --clr-on-secondary-button: oklch(from var(--clr-secondary-button) clamp(0, (0.7 - l) * 1000, 1) 0 0);
+    --clr-on-offer: oklch(from var(--clr-offer) clamp(0, (0.7 - l) * 1000, 1) 0 0);
     --clr-field: oklch(from var(--wc-color-background) calc(l + (1 - l) * 0.3 * clamp(0, (l - 0.6) * 1000, 1) + 0.08 * (1 - clamp(0, (l - 0.6) * 1000, 1))) c h);
   }
 }
@@ -386,7 +394,7 @@ a { color: inherit; text-underline-offset: 0.25em; }
   white-space: nowrap;
 }
 .badge-sale, .stamp-accent { background: var(--clr-accent); color: var(--clr-on-accent); }
-.badge-offer { background: var(--clr-highlight); color: var(--clr-on-highlight); }
+.badge-offer { background: var(--clr-offer); color: var(--clr-on-offer); }
 .badge-ink, .stamp-ink { background: var(--clr-ink); color: var(--clr-bg); }
 .badge-soft { background: var(--clr-bg); color: var(--clr-ink); box-shadow: var(--shadow-sm); }
 .badge-warn, .stamp-warn { background: var(--clr-bg); color: var(--clr-error); box-shadow: var(--shadow-sm); }
@@ -426,11 +434,11 @@ a { color: inherit; text-underline-offset: 0.25em; }
   color: var(--clr-ink);
   white-space: nowrap;
 }
-.price.is-sale { color: var(--clr-accent); }
+.price.is-sale { color: var(--clr-price-new); }
 .price-cur { font-size: 0.8em; font-weight: 500; margin-inline-start: 0.2em; }
 .price-was {
   font-variant-numeric: tabular-nums lining-nums;
-  color: var(--clr-muted);
+  color: var(--clr-price-old);
   font-weight: 400;
   text-decoration: line-through;
   text-decoration-thickness: 1px;
@@ -475,10 +483,10 @@ a { color: inherit; text-underline-offset: 0.25em; }
 .btn-primary:active, .btn-secondary:active, .btn-ghost:active { transform: scale(0.98); }
 .btn-secondary {
   background: transparent;
-  color: var(--clr-ink);
-  border: 1px solid var(--clr-ink);
+  color: var(--clr-secondary-button);
+  border: 1px solid var(--clr-secondary-button);
 }
-.btn-secondary:hover { background: var(--clr-ink); color: var(--clr-bg); }
+.btn-secondary:hover { background: var(--clr-secondary-button); color: var(--clr-on-secondary-button); }
 .btn-ghost {
   background: var(--clr-bg);
   color: var(--clr-ink);

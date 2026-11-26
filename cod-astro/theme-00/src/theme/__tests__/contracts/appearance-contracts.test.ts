@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { checkThemeSettings, contrastRatio, themeStyleSheet } from "@wocart/theme";
 import themeFonts from "@/theme/fonts.json";
 import styleSizes from "@/theme/style-sizes.json";
-import { BODY_FONT, CORNERS, DEFAULT_SCHEMES, HEADING_FONT, SCHEME_OF, cardAspect, cornerRadii, schemeBackground, themeFont } from "@/theme/appearance";
+import { BODY_FONT, CORNERS, DEFAULT_SCHEMES, HEADING_FONT, SCHEME_OF, cardAspect, cornerRadii, detailColorStyles, schemeBackground, themeFont } from "@/theme/appearance";
 import { theme00 } from "@/theme/theme";
 
 const rem = (value: string) => (value === "0" ? 0 : Number.parseFloat(value));
@@ -41,6 +41,15 @@ describe("the default color schemes", () => {
     expect(schemeBackground(DEFAULT_SCHEMES, SCHEME_OF.olive)).toBe("#f3f2e7");
     expect(schemeBackground(DEFAULT_SCHEMES, "gone")).toBe("#ffffff");
     expect(schemeBackground(undefined, "scheme-1")).toBe("#ffffff");
+  });
+});
+
+describe("the detail colors", () => {
+  it("publish only valid picked colors as root tokens, letting the rest follow their scheme", () => {
+    expect(detailColorStyles({})).toBe("");
+    expect(detailColorStyles({ secondaryButtonColor: "#123456", offerColor: "#abcdef", priceOldColor: "red", priceNewColor: null })).toBe(
+      "--wc-detail-secondary-button: #123456;\n      --wc-detail-offer: #abcdef;",
+    );
   });
 });
 

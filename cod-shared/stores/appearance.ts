@@ -21,6 +21,17 @@ export const APPEARANCE_COLOR_ROLES = [
 
 export type AppearanceColorRole = (typeof APPEARANCE_COLOR_ROLES)[number];
 
+export const APPEARANCE_DETAIL_COLOR_KEYS = ["secondaryButton", "offer", "oldPrice", "newPrice"] as const;
+export type AppearanceDetailColorKey = (typeof APPEARANCE_DETAIL_COLOR_KEYS)[number];
+export type AppearanceDetailColors = Partial<Record<AppearanceDetailColorKey, string | null>>;
+
+const DETAIL_COLOR_FLAT_KEYS: Record<AppearanceDetailColorKey, string> = {
+  secondaryButton: "secondaryButtonColor",
+  offer: "offerColor",
+  oldPrice: "priceOldColor",
+  newPrice: "priceNewColor",
+};
+
 export const APPEARANCE_MAX_SCHEMES = 12;
 export const APPEARANCE_SCHEME_ID = /^[a-z0-9-]+$/;
 export const APPEARANCE_HEX = /^#[0-9a-f]{6}$/i;
@@ -76,12 +87,14 @@ export interface AppearanceSettings {
   pageScheme: string;
   /** A write that only saves colors leaves the other controls as they were. */
   hideLogo?: boolean;
+  hideHeaderText?: boolean;
   searchEnabled?: boolean;
   headerHtml?: string;
   /** Where the logo sits, independent of the search icon and the header's own fields. */
   logoAlignment?: AppearanceLogoAlignment;
   /** Per-section visibility and photo overrides. */
   sections?: AppearanceSectionEdits;
+  detailColors?: AppearanceDetailColors;
 }
 
 /** The editor's starting palette, mirroring Theme-00's shipped schemes. */
@@ -221,6 +234,37 @@ export function appearanceImageProblem(value: unknown): string | null {
   return null;
 }
 
+export function appearanceDetailColorsProblem(value: unknown): string | null {
+  if (value === undefined) return null;
+  if (!isRecord(value)) return "detailColors must be an object";
+  for (const key of Object.keys(value)) {
+    if (!(APPEARANCE_DETAIL_COLOR_KEYS as readonly string[]).includes(key)) {
+      return `"${key}" is not a detail color`;
+    }
+  }
+  for (const key of APPEARANCE_DETAIL_COLOR_KEYS) {
+    const color = value[key];
+    if (color !== undefined && color !== null && (typeof color !== "string" || !APPEARANCE_HEX.test(color))) {
+      return `"${key}" needs a hex color`;
+    }
+  }
+  return null;
+}
+
+function detailColorsOf(stored: Record<string, unknown>): AppearanceDetailColors | undefined {
+  const nested = stored.detailColors;
+  if (nested !== undefined && appearanceDetailColorsProblem(nested) === null) {
+    const colors = nested as AppearanceDetailColors;
+    if (Object.keys(colors).length > 0) return colors;
+  }
+  const parsed: AppearanceDetailColors = {};
+  for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
+    const color = stored[flatKey];
+    if (typeof color === "string" && APPEARANCE_HEX.test(color)) parsed[key] = color;
+  }
+  return Object.keys(parsed).length > 0 ? parsed : undefined;
+}
+
 export function appearanceSectionsProblem(value: unknown): string | null {
   if (!isRecord(value)) return "sections must be an object";
   for (const [key, edit] of Object.entries(value)) {
@@ -248,6 +292,7 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
     colorSchemes: settings.colorSchemes,
     pageScheme: settings.pageScheme,
     hideLogo: settings.hideLogo ?? false,
+    hideHeaderText: settings.hideHeaderText ?? false,
     searchEnabled: settings.searchEnabled ?? true,
     headerHtml: sanitizeHeaderHtml(settings.headerHtml ?? ""),
     logoAlignment: settings.logoAlignment ?? "right",
@@ -256,6 +301,10 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
     const edit = settings.sections?.[section.key];
     if (edit?.hidden === true) flat[section.hiddenKey] = true;
     if (edit?.image !== undefined && edit.image !== null) flat[section.imageKey] = edit.image;
+  }
+  for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
+    const color = settings.detailColors?.[key];
+    if (color) flat[flatKey] = color;
   }
   return flat;
 }
@@ -267,6 +316,9 @@ export function appearanceSettingsToRemove(settings: AppearanceSettings): string
     const edit = settings.sections?.[section.key];
     if (edit?.hidden !== true) removed.push(section.hiddenKey);
     if (edit?.image === null || edit?.image === undefined) removed.push(section.imageKey);
+  }
+  for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
+    if (!settings.detailColors?.[key]) removed.push(flatKey);
   }
   return removed;
 }
@@ -292,12 +344,14 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
     colorSchemes: stored.colorSchemes,
     pageScheme: stored.pageScheme,
     hideLogo: stored.hideLogo ?? false,
+    hideHeaderText: stored.hideHeaderText ?? false,
     searchEnabled: stored.searchEnabled ?? true,
     headerHtml: typeof stored.headerHtml === "string" ? stored.headerHtml : "",
     logoAlignment: APPEARANCE_LOGO_ALIGNMENTS.includes(stored.logoAlignment as AppearanceLogoAlignment)
       ? (stored.logoAlignment as AppearanceLogoAlignment)
       : "right",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
+    detailColors: detailColorsOf(stored),
   };
   return appearanceSettingsProblem(candidate) === null ? (candidate as AppearanceSettings) : null;
 }
@@ -351,7 +405,7 @@ export function appearanceSettingsProblem(value: unknown): string | null {
   if (!schemes.some((scheme) => scheme.id === value.pageScheme)) {
     return `pageScheme names "${value.pageScheme}", which the store does not have`;
   }
-  for (const key of ["hideLogo", "searchEnabled"] as const) {
+  for (const key of ["hideLogo", "hideHeaderText", "searchEnabled"] as const) {
     if (value[key] !== undefined && typeof value[key] !== "boolean") return `${key} must be on or off`;
   }
   if (value.headerHtml !== undefined && typeof value.headerHtml !== "string") {
@@ -367,6 +421,8 @@ export function appearanceSettingsProblem(value: unknown): string | null {
     const sectionsProblem = appearanceSectionsProblem(value.sections);
     if (sectionsProblem) return sectionsProblem;
   }
+  const detailProblem = appearanceDetailColorsProblem(value.detailColors);
+  if (detailProblem) return detailProblem;
   return null;
 }
 
@@ -393,10 +449,12 @@ export function mergeAppearance(
   }
   const controls = {
     hideLogo: next.hideLogo ?? current?.hideLogo ?? false,
+    hideHeaderText: next.hideHeaderText ?? current?.hideHeaderText ?? false,
     searchEnabled: next.searchEnabled ?? current?.searchEnabled ?? true,
     headerHtml: sanitizeHeaderHtml(next.headerHtml ?? current?.headerHtml ?? ""),
     logoAlignment: next.logoAlignment ?? current?.logoAlignment ?? "right",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
+    detailColors: next.detailColors !== undefined ? next.detailColors : current?.detailColors,
   };
   if (!current || current.colorSchemes.length === 0) return { settings: { ...next, ...controls } };
   if (next.colorSchemes.length !== current.colorSchemes.length) {
@@ -431,10 +489,12 @@ export function appearanceSettingsOf(stored: Record<string, unknown> | null | un
     colorSchemes: stored.colorSchemes,
     pageScheme: stored.pageScheme,
     hideLogo: stored.hideLogo ?? false,
+    hideHeaderText: stored.hideHeaderText ?? false,
     searchEnabled: stored.searchEnabled ?? true,
     headerHtml: typeof stored.headerHtml === "string" ? stored.headerHtml : "",
     logoAlignment: stored.logoAlignment ?? "right",
     sections: stored.sections,
+    detailColors: detailColorsOf(stored),
   };
   return appearanceSettingsProblem(candidate) === null ? (candidate as AppearanceSettings) : null;
 }

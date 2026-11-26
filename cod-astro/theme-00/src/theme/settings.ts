@@ -23,6 +23,10 @@ export const THEME_SETTINGS = [
     fields: [
       { key: "colorSchemes", kind: "colorSchemes", label: SETTING.colorSchemes, default: DEFAULT_SCHEMES },
       { key: "pageScheme", kind: "colorScheme", label: SETTING.pageScheme, default: PAGE_SCHEME },
+      { key: "secondaryButtonColor", kind: "color", label: SETTING.secondaryButtonColor },
+      { key: "offerColor", kind: "color", label: SETTING.offerColor },
+      { key: "priceOldColor", kind: "color", label: SETTING.priceOldColor },
+      { key: "priceNewColor", kind: "color", label: SETTING.priceNewColor },
     ],
   },
   {
@@ -69,6 +73,7 @@ export const THEME_SETTINGS = [
     label: SETTINGS_GROUP.storefront,
     fields: [
       { key: "hideLogo", kind: "boolean", label: SETTING.hideLogo, default: false },
+      { key: "hideHeaderText", kind: "boolean", label: SETTING.hideHeaderText, default: false },
       { key: "searchEnabled", kind: "boolean", label: SETTING.searchEnabled, default: true },
       { key: "hideHeroImages", kind: "boolean", label: SETTING.hideHeroImages, default: false },
       { key: "headerHtml", kind: "textarea", label: SETTING.headerHtml, default: "" },
