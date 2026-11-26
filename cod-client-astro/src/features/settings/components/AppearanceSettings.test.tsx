@@ -8,13 +8,36 @@ vi.mock("astro:env/client", () => ({ PUBLIC_API_URL: "https://api.test" }));
 const seam = vi.hoisted(() => ({
   appearance: null as null | Record<string, any>,
   calls: [] as Array<Record<string, any>>,
+  response: null as null | Record<string, any>,
+  upload: vi.fn(),
 }));
 
 vi.mock("@/features/settings/api", () => ({
   getAppearance: async () => seam.appearance,
   saveAppearance: async (payload: Record<string, any>) => {
     seam.calls.push(payload);
-    seam.appearance = { ...seam.appearance!, ...payload };
+    if (seam.response) return seam.response;
+    const next = { ...seam.appearance!, ...payload };
+    if (payload.sections) {
+      next.sections = Object.fromEntries(
+        Object.entries(payload.sections).map(([key, edit]: [string, any]) => [
+          key,
+          {
+            hidden: edit.hidden ?? false,
+            image: edit.image
+              ? {
+                  key: edit.image.key,
+                  url: `https://cdn.test/${edit.image.key}`,
+                  width: edit.image.width ?? null,
+                  height: edit.image.height ?? null,
+                }
+              : null,
+            ...(key === "marquee" ? { text: edit.text ?? "", color: edit.color ?? null } : {}),
+          },
+        ]),
+      );
+    }
+    seam.appearance = next;
     return seam.appearance;
   },
 }));
@@ -28,10 +51,11 @@ vi.mock("@/features/uploads/api", () => ({
   partitionUploadFiles: (files: File[]) => ({ accepted: files, unsupportedCount: 0, tooLargeCount: 0 }),
   uploadFailure: () => "upload_failed",
 }));
-vi.mock("@/features/uploads/useImageUpload", () => ({ useImageUpload: () => ({ upload: vi.fn(), progress: null }) }));
+vi.mock("@/features/uploads/useImageUpload", () => ({ useImageUpload: () => ({ upload: seam.upload, progress: null }) }));
 vi.mock("@/lib/notify", () => ({ notify: { success: vi.fn(), error: vi.fn() } }));
 
 import { APPEARANCE_DEFAULT_SCHEMES } from "../../../../../cod-shared/stores/appearance";
+import { ErrorBoundary } from "@/components/ui";
 import { AppearanceSettings, autoDetailSwatch } from "./AppearanceSettings";
 
 const appearance = () => ({
@@ -57,6 +81,14 @@ beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
   seam.appearance = appearance();
   seam.calls = [];
+  seam.response = null;
+  seam.upload.mockReset();
+  seam.upload.mockResolvedValue({
+    key: "products/hero.webp",
+    url: "https://cdn.test/products/hero.webp",
+    width: 1200,
+    height: 600,
+  });
   host = document.createElement("div");
   document.body.appendChild(host);
 });
@@ -69,8 +101,41 @@ afterEach(() => {
 async function render() {
   await act(async () => {
     root = createRoot(host);
-    root.render(<AppearanceSettings />);
+    root.render(
+      <ErrorBoundary fallback={<div data-fallback="true">failed</div>}>
+        <AppearanceSettings />
+      </ErrorBoundary>,
+    );
   });
+  await settle();
+}
+
+async function settle() {
+  for (let i = 0; i < 5; i++) await act(async () => { await Promise.resolve(); });
+}
+
+function heroCard(): HTMLElement {
+  const card = section("store.appearance_sections_title");
+  const found = [...card.querySelectorAll("div")]
+    .filter((node) => node.textContent?.includes("store.appearance_section_hero") && node.querySelector('input[type="file"]'))
+    .at(-1);
+  if (!found) throw new Error("No hero card");
+  return found;
+}
+
+async function uploadHero() {
+  const input = heroCard().querySelector<HTMLInputElement>('input[type="file"]')!;
+  const file = new File([new Uint8Array(16)], "hero.webp", { type: "image/webp" });
+  Object.defineProperty(input, "files", { configurable: true, value: [file] });
+  await act(async () => { input.dispatchEvent(new Event("change", { bubbles: true })); });
+  await settle();
+}
+
+async function removeHero() {
+  const button = [...heroCard().querySelectorAll("button")].find(
+    (node) => node.textContent === "image.remove",
+  )!;
+  await click(button);
 }
 
 async function setValue(
@@ -347,5 +412,47 @@ describe("AppearanceSettings", () => {
     expect(autoDetailSwatch("oldPrice", APPEARANCE_DEFAULT_SCHEMES[0])).toBe(
       "color-mix(in oklab, #3b4250 74%, #ffffff)",
     );
+  });
+
+  it("keeps a just-uploaded hero picture when another Appearance card is saved", async () => {
+    await render();
+    await uploadHero();
+    expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
+
+    await click(saveButton(section("store.appearance_colors_title")));
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
+
+    await click(saveButton(section("store.appearance_sections_title")));
+    expect(seam.calls.at(-1)!.sections.hero.image.key).toBe("products/hero.webp");
+  });
+
+  it("never crashes the Settings island when a save answer omits appearance fields", async () => {
+    await render();
+    await uploadHero();
+    seam.response = { ...appearance(), locales: undefined };
+
+    await click(saveButton(section("store.appearance_colors_title")));
+    await settle();
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
+  });
+
+  it("keeps a removed hero picture removed across other card saves", async () => {
+    await render();
+    await uploadHero();
+    await click(saveButton(section("store.appearance_sections_title")));
+    await removeHero();
+
+    await click(saveButton(section("store.appearance_colors_title")));
+    await settle();
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeNull();
+
+    await click(saveButton(section("store.appearance_sections_title")));
+    expect(seam.calls.at(-1)!.sections.hero.image).toBeNull();
   });
 });

@@ -79,6 +79,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A Hero picture uploaded or removed in Appearance stays put when another
+  settings card is saved, and an incomplete save answer no longer drops the
+  Settings page into its error state.
 - Saving one Appearance card leaves the others as they were. The color card
   opens on the scheme the storefront actually wears, so changing its colors
   reaches the live store instead of a different preset. Small category photos

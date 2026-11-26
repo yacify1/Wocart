@@ -150,6 +150,33 @@ function sectionEdits(sections: StoreAppearance["sections"]): AppearanceSectionE
   ) as AppearanceSectionEdits;
 }
 
+function savedSectionImage(image: unknown): MediaImage | null {
+  if (!image || typeof image !== "object") return null;
+  const candidate = image as Partial<MediaImage>;
+  if (typeof candidate.key !== "string" || typeof candidate.url !== "string") return null;
+  return {
+    key: candidate.key,
+    url: candidate.url,
+    width: candidate.width ?? null,
+    height: candidate.height ?? null,
+  };
+}
+
+function sectionsFrom(saved: StoreAppearance): StoreAppearance["sections"] {
+  const nextSections = emptySections();
+  for (const { key } of APPEARANCE_HOME_SECTIONS) {
+    const savedSection = saved.sections?.[key];
+    nextSections[key] = {
+      hidden: savedSection?.hidden ?? false,
+      image: savedSectionImage(savedSection?.image),
+      ...(key === "marquee"
+        ? { text: savedSection?.text ?? "", color: savedSection?.color ?? null }
+        : {}),
+    };
+  }
+  return nextSections;
+}
+
 function sameColors(
   scheme: AppearanceColorScheme | undefined,
   colors: Record<AppearanceColorRole, string>,
@@ -337,40 +364,31 @@ export function AppearanceSettings() {
   });
   const [sections, setSections] = useState<StoreAppearance["sections"]>(emptySections);
 
-  function applySaved(saved: StoreAppearance, initial = false) {
+  function applySaved(saved: StoreAppearance, initial = false, sectionsSaved = false) {
+    const colorSchemes =
+      Array.isArray(saved.colorSchemes) && saved.colorSchemes.length > 0 ? saved.colorSchemes : schemes;
     setData(saved);
-    setSchemes(cloneSchemes(saved.colorSchemes));
-    setPageScheme(saved.pageScheme);
+    setSchemes(cloneSchemes(colorSchemes));
+    setPageScheme(saved.pageScheme ?? pageScheme);
     setDetailColors({ ...(saved.detailColors ?? {}) });
     setSelected((id) =>
-      initial || !saved.colorSchemes.some((scheme) => scheme.id === id)
-        ? saved.colorSchemes[0]?.id || saved.pageScheme || ""
+      initial || !colorSchemes.some((scheme) => scheme.id === id)
+        ? colorSchemes[0]?.id || saved.pageScheme || pageScheme || ""
         : id,
     );
     if (initial) {
-      setTextLocale(saved.primaryLocale);
-      setDrafts(saved.texts);
+      setTextLocale(saved.primaryLocale ?? textLocale);
+      setDrafts(saved.texts ?? {});
     }
     setControls({
-      hideLogo: saved.hideLogo,
-      hideHeaderText: saved.hideHeaderText,
-      hideMenu: saved.hideMenu,
-      searchEnabled: saved.searchEnabled,
-      headerHtml: saved.headerHtml,
-      logoAlignment: saved.logoAlignment ?? "right",
+      hideLogo: saved.hideLogo ?? controls.hideLogo,
+      hideHeaderText: saved.hideHeaderText ?? controls.hideHeaderText,
+      hideMenu: saved.hideMenu ?? controls.hideMenu,
+      searchEnabled: saved.searchEnabled ?? controls.searchEnabled,
+      headerHtml: typeof saved.headerHtml === "string" ? saved.headerHtml : controls.headerHtml,
+      logoAlignment: saved.logoAlignment ?? controls.logoAlignment,
     });
-    const nextSections = emptySections();
-    for (const { key } of APPEARANCE_HOME_SECTIONS) {
-      const savedSection = saved.sections?.[key];
-      nextSections[key] = {
-        hidden: savedSection?.hidden ?? false,
-        image: savedSection?.image ?? null,
-        ...(key === "marquee"
-          ? { text: savedSection?.text ?? "", color: savedSection?.color ?? null }
-          : {}),
-      };
-    }
-    setSections(nextSections);
+    if (initial || sectionsSaved) setSections(sectionsFrom(saved));
   }
 
   async function load() {
@@ -458,7 +476,7 @@ export function AppearanceSettings() {
   }
 
   async function saveSections() {
-    applySaved(await saveAppearance({ sections: sectionEdits(sections) }));
+    applySaved(await saveAppearance({ sections: sectionEdits(sections) }), false, true);
   }
 
   async function saveTexts() {
@@ -798,9 +816,9 @@ export function AppearanceSettings() {
             value={textLocale}
             onChange={(event) => setTextLocale(event.target.value as StoreLocale)}
           >
-            {data.locales.map((code) => (
+            {(data.locales ?? []).map((code) => (
               <option key={code} value={code}>
-                {STORE_LOCALE_INFO[code].nativeName}
+                {STORE_LOCALE_INFO[code]?.nativeName ?? code}
               </option>
             ))}
           </Select>
