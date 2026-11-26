@@ -22,10 +22,17 @@ vi.mock("@/i18n/react", () => ({
   useT: () => (key: string) => key,
   useLocale: () => "en",
 }));
+vi.mock("@/features/uploads/api", () => ({
+  IMAGE_ACCEPT: "image/*",
+  MAX_UPLOAD_MB: 10,
+  partitionUploadFiles: (files: File[]) => ({ accepted: files, unsupportedCount: 0, tooLargeCount: 0 }),
+  uploadFailure: () => "upload_failed",
+}));
+vi.mock("@/features/uploads/useImageUpload", () => ({ useImageUpload: () => ({ upload: vi.fn(), progress: null }) }));
 vi.mock("@/lib/notify", () => ({ notify: { success: vi.fn(), error: vi.fn() } }));
 
 import { APPEARANCE_DEFAULT_SCHEMES } from "../../../../../cod-shared/stores/appearance";
-import { AppearanceSettings } from "./AppearanceSettings";
+import { AppearanceSettings, autoDetailSwatch } from "./AppearanceSettings";
 
 const appearance = () => ({
   themeKey: "theme-00",
@@ -35,6 +42,7 @@ const appearance = () => ({
   pageScheme: "scheme-1",
   hideLogo: false,
   hideHeaderText: false,
+  hideMenu: false,
   searchEnabled: true,
   headerHtml: "",
   logoAlignment: "right",
@@ -181,5 +189,68 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[0]!.texts.values.heroTitle).toBe("New title");
     expect(seam.calls[0]!.colorSchemes).toBeUndefined();
     expect(seam.calls[0]!.logoAlignment).toBeUndefined();
+  });
+
+  it("restores a quick look's original colors instead of keeping old edits", async () => {
+    const schemes = JSON.parse(JSON.stringify(APPEARANCE_DEFAULT_SCHEMES));
+    const olive = schemes.find((scheme: { id: string }) => scheme.id === "scheme-6");
+    olive.colors.background = "#123456";
+    olive.colors.button = "#654321";
+    seam.appearance = { ...appearance(), colorSchemes: schemes, pageScheme: "scheme-6" };
+    await render();
+
+    const look = [...host.querySelectorAll("button")].find((node) =>
+      node.textContent?.includes("store.appearance_look_olive"),
+    )!;
+    await click(look);
+    await click(saveButton(section("store.appearance_colors_title")));
+
+    expect(seam.calls[0]!.pageScheme).toBe("scheme-6");
+    expect(seam.calls[0]!.colorSchemes.find((scheme: { id: string }) => scheme.id === "scheme-6").colors).toEqual(
+      APPEARANCE_DEFAULT_SCHEMES.find((scheme) => scheme.id === "scheme-6")!.colors,
+    );
+  });
+
+  it("saves the hide-menu switch without touching colors or texts", async () => {
+    await render();
+    const toggle = [...host.querySelectorAll<HTMLButtonElement>('[role="switch"]')].find((node) =>
+      node.parentElement?.textContent?.includes("store.appearance_control_hideMenu"),
+    )!;
+    await click(toggle);
+
+    await click(saveButton(section("store.appearance_storefront_title")));
+
+    expect(seam.calls[0]!.hideMenu).toBe(true);
+    expect(seam.calls[0]!.colorSchemes).toBeUndefined();
+    expect(seam.calls[0]!.texts).toBeUndefined();
+  });
+
+  it("saves section hiding on its own and uploads pictures only where sections use them", async () => {
+    await render();
+    const card = section("store.appearance_sections_title");
+    const uploads = [...card.querySelectorAll("button")].filter(
+      (node) => node.textContent === "store.appearance_section_upload",
+    );
+    expect(uploads).toHaveLength(2);
+
+    const toggleFor = (label: string) =>
+      [...card.querySelectorAll<HTMLButtonElement>('[role="switch"]')].find((node) =>
+        node.parentElement?.textContent?.includes(label),
+      )!;
+    await click(toggleFor("store.appearance_section_category-cards"));
+    await click(toggleFor("store.appearance_section_marquee"));
+    await click(saveButton(card));
+
+    expect(seam.calls).toHaveLength(1);
+    expect(Object.keys(seam.calls[0]!)).toEqual(["sections"]);
+    expect(seam.calls[0]!.sections["category-cards"].hidden).toBe(true);
+    expect(seam.calls[0]!.sections.marquee.hidden).toBe(true);
+    expect(seam.calls[0]!.sections["image-banner"].hidden).toBe(false);
+  });
+
+  it("uses the storefront's muted fallback for an auto old price", () => {
+    expect(autoDetailSwatch("oldPrice", APPEARANCE_DEFAULT_SCHEMES[0])).toBe(
+      "color-mix(in oklab, #3b4250 74%, #ffffff)",
+    );
   });
 });

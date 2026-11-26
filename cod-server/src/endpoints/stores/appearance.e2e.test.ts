@@ -212,6 +212,7 @@ describe("the storefront config", () => {
       pageScheme: "scheme-6",
       hideLogo: true,
       hideHeaderText: true,
+      hideMenu: true,
       searchEnabled: false,
       logoAlignment: "left",
       headerHtml: '<strong class="promo">Sale</strong>',
@@ -230,6 +231,7 @@ describe("the storefront config", () => {
       pageScheme: "scheme-6",
       hideLogo: true,
       hideHeaderText: true,
+      hideMenu: true,
       searchEnabled: false,
       logoAlignment: "left",
       headerHtml: '<strong class="promo">Sale</strong>',
@@ -251,6 +253,7 @@ describe("the storefront config", () => {
       logoAlignment: "center",
       homeHeroHidden: true,
       homeHeroImage: { key: "products/hero.webp", alt: "New arrival" },
+      homeMarqueeHidden: true,
       homeMarqueeImage: { key: "landing/strip.webp" },
     });
 
@@ -258,7 +261,7 @@ describe("the storefront config", () => {
       logoAlignment: "center",
       sections: {
         hero: { hidden: true, image: { key: "products/hero.webp", alt: "New arrival" } },
-        marquee: { image: { key: "landing/strip.webp" } },
+        marquee: { hidden: true, image: { key: "landing/strip.webp" } },
       },
     });
   });

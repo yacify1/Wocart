@@ -72,6 +72,8 @@ export interface StoreAppearance {
   hideLogo: boolean;
   /** Hide the store name when the header has no image logo. */
   hideHeaderText: boolean;
+  /** Hide the header navigation menu and its mobile tab. */
+  hideMenu: boolean;
   searchEnabled: boolean;
   /** Sanitized HTML the store puts above its header. */
   headerHtml: string;

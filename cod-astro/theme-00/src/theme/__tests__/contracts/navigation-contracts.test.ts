@@ -142,6 +142,17 @@ describe("the header and the footer's menu", () => {
     expect(html).toContain("logo.webp");
     expect(html).not.toContain("header-name");
   });
+
+  it("hides the header menu and its drawer without hiding search or the logo", async () => {
+    const html = await (await AstroContainer.create()).renderToString(Header, {
+      props: { ...HEADER_PROPS, showSearch: true, storeMenu: menu },
+      locals: locals({ config: { ...TEST_CONFIG, themeSettings: { hideMenu: true } } }),
+    });
+    expect(html).not.toContain("site-menu");
+    expect(html).not.toContain("nav-link");
+    expect(html).toContain("header-logo");
+    expect(html).toContain("magnifying-glass");
+  });
 });
 
 describe("the layout", () => {
@@ -178,6 +189,16 @@ describe("the layout", () => {
     expect(html).toContain(fr.announcementText);
     expect(html).toContain('class="site-header');
     expect(html).toContain(fr.footerRights);
+  });
+
+  it("drops the phone's menu tab when the store hides navigation", async () => {
+    const client = { menus: { get: async () => menu }, pageData: { get: async () => null } };
+    const shown = await render(client);
+    const hidden = await render(client, { hideMenu: true });
+    expect(shown).toContain("mobile-nav");
+    expect(shown).toContain("has-mobile-nav");
+    expect(hidden).not.toContain("mobile-nav");
+    expect(hidden).not.toContain("has-mobile-nav");
   });
 
   it("shows the merchant's announcement in the shopper's language", async () => {
@@ -231,6 +252,7 @@ describe("the theme's settings", () => {
       cardButton: true,
       hideLogo: false,
       hideHeaderText: false,
+      hideMenu: false,
       searchEnabled: true,
       hideHeroImages: false,
       headerHtml: "",

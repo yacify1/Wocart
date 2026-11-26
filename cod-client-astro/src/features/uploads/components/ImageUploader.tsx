@@ -22,12 +22,14 @@ export function ImageUploader({
   alt,
   shape = "landscape",
   disabled,
+  buttonLabel,
 }: {
   value: MediaImage | null;
   onChange: (image: MediaImage | null) => void;
   alt: string;
   shape?: ImageUploaderShape;
   disabled?: boolean;
+  buttonLabel?: string;
 }) {
   const common = useT("common");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +88,19 @@ export function ImageUploader({
             {common("image.remove")}
           </Button>
         </div>
+        {input}
+      </div>
+    );
+  }
+
+  if (buttonLabel) {
+    return (
+      <div className="space-y-2">
+        <Button type="button" variant="secondary" size="sm" disabled={locked} onClick={() => inputRef.current?.click()}>
+          {uploading ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <UploadCloud size={14} aria-hidden="true" />}
+          {uploading ? common("image.uploading") : buttonLabel}
+        </Button>
+        <p className="text-xs text-muted-foreground">{common("image.formats", { mb: MAX_UPLOAD_MB })}</p>
         {input}
       </div>
     );

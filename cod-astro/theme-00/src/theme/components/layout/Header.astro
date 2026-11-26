@@ -20,8 +20,8 @@ type Props = InferProps<typeof header> & { storeMenu: StoreMenu | null };
 const { storeMenu, logoPosition, logoWidth, sticky, showSearch, showLanguage, scheme } = Astro.props;
 const store = Astro.locals.store;
 const { config, content } = store;
-const { hideLogo, hideHeaderText, searchEnabled, headerHtml, logoAlignment } = settingsOf(store);
-const links = menuLinks(storeMenu, store.href, store.pathname) ?? [];
+const { hideLogo, hideHeaderText, hideMenu, searchEnabled, headerHtml, logoAlignment } = settingsOf(store);
+const links = hideMenu ? [] : menuLinks(storeMenu, store.href, store.pathname) ?? [];
 const centered = logoPosition === "center";
 const showLogo = !hideLogo && (Boolean(config.logo) || !hideHeaderText);
 ---

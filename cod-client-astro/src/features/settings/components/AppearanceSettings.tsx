@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
-import { Check, Loader2, Palette, SlidersHorizontal, Type } from "lucide-react";
+import { Check, Layers3, Loader2, Palette, SlidersHorizontal, Type } from "lucide-react";
 import { Alert, Badge, Field, Input, Select, SwitchField, Textarea } from "@/components/ui";
 import { useLocale, useT } from "@/i18n/react";
 import { getAppearance, saveAppearance, type SaveAppearanceInput } from "@/features/settings/api";
 import { SettingsSection, FieldRow } from "@/features/settings/components/SettingsSection";
+import { ImageUploader } from "@/features/uploads/components/ImageUploader";
+import type { MediaImage } from "@/features/uploads/api";
 import type { StoreAppearance } from "@/features/settings/types";
 import {
   APPEARANCE_COLOR_ROLES,
+  APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEADER_HTML_MAX,
+  APPEARANCE_HOME_SECTIONS,
   APPEARANCE_LOGO_ALIGNMENTS,
   APPEARANCE_TEXT_KEYS,
   APPEARANCE_TEXT_LIMITS,
@@ -16,7 +20,10 @@ import {
   type AppearanceColorScheme,
   type AppearanceDetailColorKey,
   type AppearanceDetailColors,
+  type AppearanceHomeSectionKey,
+  type AppearanceImage,
   type AppearanceLogoAlignment,
+  type AppearanceSectionEdits,
   type AppearanceTextKey,
 } from "../../../../../cod-shared/stores/appearance";
 import { STORE_LOCALE_INFO, type StoreLocale } from "../../../../../cod-shared/i18n/locales";
@@ -48,19 +55,47 @@ const DETAIL_COLOR_FIELDS: { key: AppearanceDetailColorKey; labelKey: string }[]
   { key: "newPrice", labelKey: "store.appearance_color_newPrice" },
 ];
 
+function mixHex(from: string, to: string, weight: number): string {
+  const channel = (hex: string, at: number) => Number.parseInt(hex.slice(at, at + 2), 16);
+  const mixed = [1, 3, 5].map((at) =>
+    Math.round(channel(from, at) * weight + channel(to, at) * (1 - weight))
+      .toString(16)
+      .padStart(2, "0"),
+  );
+  return `#${mixed.join("")}`;
+}
+
 function autoDetailColor(key: AppearanceDetailColorKey, scheme: AppearanceColorScheme | undefined): string {
   const colors = scheme?.colors;
   if (key === "secondaryButton") return colors?.heading ?? "#0f1626";
-  if (key === "oldPrice") return colors?.text ?? "#8a8f98";
+  if (key === "oldPrice") {
+    const text = colors?.text ?? "#3b4250";
+    const background = colors?.background ?? "#ffffff";
+    return mixHex(text, background, 0.74);
+  }
   if (key === "newPrice") return colors?.accent ?? "#c8102e";
   return "#f2c14e";
 }
 
+export function autoDetailSwatch(key: AppearanceDetailColorKey, scheme: AppearanceColorScheme | undefined): string {
+  if (key === "oldPrice") {
+    const text = scheme?.colors.text ?? "#3b4250";
+    const background = scheme?.colors.background ?? "#ffffff";
+    return `color-mix(in oklab, ${text} 74%, ${background})`;
+  }
+  return autoDetailColor(key, scheme);
+}
+
+const IMAGE_SECTION_KEYS = new Set<AppearanceHomeSectionKey>(["hero", "image-banner"]);
+
 const LOOKS = [
-  { id: "scheme-1", labelKey: "store.appearance_look_original", swatch: "#ffffff" },
-  { id: "scheme-6", labelKey: "store.appearance_look_olive", swatch: "#4b5b2c" },
-  { id: "scheme-5", labelKey: "store.appearance_look_midnight", swatch: "#0f1626" },
-] as const;
+  { id: "scheme-1", labelKey: "store.appearance_look_original" },
+  { id: "scheme-6", labelKey: "store.appearance_look_olive" },
+  { id: "scheme-5", labelKey: "store.appearance_look_midnight" },
+].map((look) => ({
+  ...look,
+  colors: APPEARANCE_DEFAULT_SCHEMES.find((scheme) => scheme.id === look.id)!.colors,
+}));
 
 /** A scheme's name is a plain string, or the same name in several languages. */
 function schemeName(name: AppearanceColorScheme["name"], locale: string): string {
@@ -79,6 +114,39 @@ function normalizedHex(raw: string): string | null {
   return null;
 }
 
+type SectionState = StoreAppearance["sections"][AppearanceHomeSectionKey];
+
+function emptySections(): StoreAppearance["sections"] {
+  return Object.fromEntries(
+    APPEARANCE_HOME_SECTIONS.map(({ key }) => [key, { hidden: false, image: null } satisfies SectionState]),
+  ) as StoreAppearance["sections"];
+}
+
+function sectionImageOf(image: MediaImage | null): AppearanceImage | null {
+  if (!image) return null;
+  return {
+    key: image.key,
+    ...(image.width !== null ? { width: image.width } : {}),
+    ...(image.height !== null ? { height: image.height } : {}),
+  };
+}
+
+function sectionEdits(sections: StoreAppearance["sections"]): AppearanceSectionEdits {
+  return Object.fromEntries(
+    APPEARANCE_HOME_SECTIONS.map(({ key }) => [
+      key,
+      {
+        hidden: sections[key]?.hidden ?? false,
+        image: IMAGE_SECTION_KEYS.has(key) ? sectionImageOf(sections[key]?.image ?? null) : null,
+      },
+    ]),
+  ) as AppearanceSectionEdits;
+}
+
+function sameColors(left: AppearanceColorScheme["colors"], right: AppearanceColorScheme["colors"]): boolean {
+  return APPEARANCE_COLOR_ROLES.every((role) => left[role] === right[role]);
+}
+
 function ColorField({
   label,
   value,
@@ -86,6 +154,7 @@ function ColorField({
   isAuto = false,
   autoLabel,
   onClear,
+  swatch,
 }: {
   label: string;
   value: string;
@@ -93,6 +162,7 @@ function ColorField({
   isAuto?: boolean;
   autoLabel?: string;
   onClear?: () => void;
+  swatch?: string;
 }) {
   const [text, setText] = useState(value);
 
@@ -116,13 +186,23 @@ function ColorField({
 
   return (
     <div className="flex items-center gap-2.5 rounded-lg border border-border px-3 py-2">
-      <input
-        type="color"
-        value={value}
-        onChange={(event) => onChange(event.target.value.toLowerCase())}
-        aria-label={label}
-        className="size-8 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
-      />
+      {isAuto && swatch ? (
+        <span
+          aria-hidden="true"
+          className="size-8 shrink-0 rounded-md border border-input p-0.5"
+          style={{ background: swatch }}
+        >
+          <span className="block size-full rounded-sm border border-border/60" />
+        </span>
+      ) : (
+        <input
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value.toLowerCase())}
+          aria-label={label}
+          className="size-8 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
+        />
+      )}
       <span className="min-w-0 flex-1 truncate text-sm text-foreground">{label}</span>
       <Input
         value={text}
@@ -166,9 +246,9 @@ function AppearancePreview({
   const t = useT("settings");
   if (!scheme) return null;
   const colors = scheme.colors;
-  const secondary = detailColors.secondaryButton ?? autoDetailColor("secondaryButton", scheme);
-  const oldPrice = detailColors.oldPrice ?? autoDetailColor("oldPrice", scheme);
-  const newPrice = detailColors.newPrice ?? autoDetailColor("newPrice", scheme);
+  const secondary = detailColors.secondaryButton ?? autoDetailSwatch("secondaryButton", scheme);
+  const oldPrice = detailColors.oldPrice ?? autoDetailSwatch("oldPrice", scheme);
+  const newPrice = detailColors.newPrice ?? autoDetailSwatch("newPrice", scheme);
   const offer = detailColors.offer ?? autoDetailColor("offer", scheme);
 
   return (
@@ -238,10 +318,12 @@ export function AppearanceSettings() {
   const [controls, setControls] = useState({
     hideLogo: false,
     hideHeaderText: false,
+    hideMenu: false,
     searchEnabled: true,
     headerHtml: "",
     logoAlignment: "right" as AppearanceLogoAlignment,
   });
+  const [sections, setSections] = useState<StoreAppearance["sections"]>(emptySections);
 
   function applySaved(saved: StoreAppearance, initial = false) {
     setData(saved);
@@ -260,10 +342,19 @@ export function AppearanceSettings() {
     setControls({
       hideLogo: saved.hideLogo,
       hideHeaderText: saved.hideHeaderText,
+      hideMenu: saved.hideMenu,
       searchEnabled: saved.searchEnabled,
       headerHtml: saved.headerHtml,
       logoAlignment: saved.logoAlignment ?? "right",
     });
+    const nextSections = emptySections();
+    for (const { key } of APPEARANCE_HOME_SECTIONS) {
+      nextSections[key] = {
+        hidden: saved.sections?.[key]?.hidden ?? false,
+        image: saved.sections?.[key]?.image ?? null,
+      };
+    }
+    setSections(nextSections);
   }
 
   async function load() {
@@ -316,6 +407,20 @@ export function AppearanceSettings() {
     );
   }
 
+  function applyLook(id: string) {
+    const look = LOOKS.find((candidate) => candidate.id === id);
+    if (!look) return;
+    setPageScheme(id);
+    setSelected(id);
+    setSchemes((list) =>
+      list.map((scheme) => (scheme.id === id ? { ...scheme, colors: { ...look.colors } } : scheme)),
+    );
+  }
+
+  function updateSection(key: AppearanceHomeSectionKey, change: Partial<SectionState>) {
+    setSections((all) => ({ ...all, [key]: { ...all[key], ...change } }));
+  }
+
   async function saveColors() {
     const payload: SaveAppearanceInput = { colorSchemes: schemes, pageScheme, detailColors };
     applySaved(await saveAppearance(payload));
@@ -325,11 +430,16 @@ export function AppearanceSettings() {
     const payload: SaveAppearanceInput = {
       hideLogo: controls.hideLogo,
       hideHeaderText: controls.hideHeaderText,
+      hideMenu: controls.hideMenu,
       searchEnabled: controls.searchEnabled,
       headerHtml: controls.headerHtml,
       logoAlignment: controls.logoAlignment,
     };
     applySaved(await saveAppearance(payload));
+  }
+
+  async function saveSections() {
+    applySaved(await saveAppearance({ sections: sectionEdits(sections) }));
   }
 
   async function saveTexts() {
@@ -373,22 +483,20 @@ export function AppearanceSettings() {
           </div>
           <div className="flex flex-wrap gap-2">
             {LOOKS.map((look) => {
-              if (!schemes.some((scheme) => scheme.id === look.id)) return null;
-              const active = pageScheme === look.id;
+              const scheme = schemes.find((candidate) => candidate.id === look.id);
+              if (!scheme) return null;
+              const active = pageScheme === look.id && sameColors(scheme.colors, look.colors);
               return (
                 <button
                   key={look.id}
                   type="button"
-                  onClick={() => {
-                    setPageScheme(look.id);
-                    setSelected(look.id);
-                  }}
+                  onClick={() => applyLook(look.id)}
                   aria-pressed={active}
                   className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                     active ? "border-primary/50 bg-primary/[0.06] text-foreground" : "border-border bg-card text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <span className="size-3 rounded-full border border-black/10" style={{ background: look.swatch }} />
+                  <span className="size-3 rounded-full border border-black/10" style={{ background: look.colors.button }} />
                   {t(look.labelKey)}
                   {active && <Check size={13} className="text-primary" />}
                 </button>
@@ -477,6 +585,7 @@ export function AppearanceSettings() {
                       key={field.key}
                       label={t(field.labelKey)}
                       value={color ?? autoDetailColor(field.key, current)}
+                      swatch={color == null ? autoDetailSwatch(field.key, current) : undefined}
                       isAuto={color == null}
                       autoLabel={t("store.appearance_color_auto")}
                       onClear={() =>
@@ -529,7 +638,7 @@ export function AppearanceSettings() {
                 ))}
               </Select>
             </FieldRow>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <SwitchField
                 label={t("store.appearance_control_hideLogo")}
                 help={t("store.appearance_control_hideLogo_hint")}
@@ -541,6 +650,12 @@ export function AppearanceSettings() {
                 help={t("store.appearance_control_hideHeaderText_hint")}
                 checked={controls.hideHeaderText}
                 onChange={(hideHeaderText) => setControls((current) => ({ ...current, hideHeaderText }))}
+              />
+              <SwitchField
+                label={t("store.appearance_control_hideMenu")}
+                help={t("store.appearance_control_hideMenu_hint")}
+                checked={controls.hideMenu}
+                onChange={(hideMenu) => setControls((current) => ({ ...current, hideMenu }))}
               />
             </div>
           </div>
@@ -570,6 +685,44 @@ export function AppearanceSettings() {
               </p>
             </Field>
           </div>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        icon={Layers3}
+        title={t("store.appearance_sections_title")}
+        subtitle={t("store.appearance_sections_subtitle")}
+        onSave={saveSections}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          {APPEARANCE_HOME_SECTIONS.map(({ key }) => {
+            const section = sections[key];
+            const label = t(`store.appearance_section_${key}`);
+            return (
+              <div key={key} className="rounded-lg border border-border p-3">
+                <SwitchField
+                  label={label}
+                  help={t("store.appearance_section_hide")}
+                  checked={section?.hidden ?? false}
+                  onChange={(hidden) => updateSection(key, { hidden })}
+                />
+                {IMAGE_SECTION_KEYS.has(key) && (
+                  <div className="mt-3 border-t border-border pt-3">
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">
+                      {t("store.appearance_section_image")}
+                    </p>
+                    <ImageUploader
+                      value={section?.image ?? null}
+                      onChange={(image: MediaImage | null) => updateSection(key, { image })}
+                      alt={label}
+                      shape="landscape"
+                      buttonLabel={t("store.appearance_section_upload")}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </SettingsSection>
 

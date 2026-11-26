@@ -66,7 +66,7 @@ const tiles = shown.length + (showAll ? 1 : 0);
                     alt=""
                     width={photo.width ?? 48}
                     height={photo.height ?? 48}
-                    quality={82}
+                    quality={100}
                     loading="lazy"
                     decoding="async"
                     data-category-photo
@@ -95,8 +95,8 @@ const tiles = shown.length + (showAll ? 1 : 0);
 )}
 
 <style>
-  .category-tiles { grid-auto-columns: 62%; list-style: none; }
-  @media (min-width: 640px) { .category-tiles { grid-auto-columns: 36%; } }
+  .category-tiles { grid-auto-columns: minmax(0, 46%); list-style: none; }
+  @media (min-width: 640px) { .category-tiles { grid-auto-columns: minmax(0, 30%); } }
   @media (min-width: 1024px) {
     .category-tiles {
       grid-auto-flow: row;
@@ -115,9 +115,10 @@ const tiles = shown.length + (showAll ? 1 : 0);
     display: block;
     width: auto;
     height: auto;
-    max-width: 5rem;
-    max-height: 5rem;
+    max-width: min(4rem, 100%);
+    max-height: 4rem;
     object-fit: contain;
+    image-rendering: auto;
   }
   @media (hover: hover) { .category-tile.is-icon:hover :global(img) { transform: none; } }
   .category-initial {

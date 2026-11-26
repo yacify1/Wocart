@@ -74,6 +74,7 @@ export const THEME_SETTINGS = [
     fields: [
       { key: "hideLogo", kind: "boolean", label: SETTING.hideLogo, default: false },
       { key: "hideHeaderText", kind: "boolean", label: SETTING.hideHeaderText, default: false },
+      { key: "hideMenu", kind: "boolean", label: SETTING.hideMenu, default: false },
       { key: "searchEnabled", kind: "boolean", label: SETTING.searchEnabled, default: true },
       { key: "hideHeroImages", kind: "boolean", label: SETTING.hideHeroImages, default: false },
       { key: "headerHtml", kind: "textarea", label: SETTING.headerHtml, default: "" },

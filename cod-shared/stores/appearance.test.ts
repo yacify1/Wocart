@@ -23,6 +23,7 @@ const valid = (): AppearanceSettings => ({
   pageScheme: "scheme-1",
   hideLogo: false,
   hideHeaderText: false,
+  hideMenu: false,
   searchEnabled: true,
   headerHtml: "",
   logoAlignment: "right",
@@ -329,10 +330,24 @@ describe("detail colors", () => {
     expect(appearanceThemeSettingsOf({ ...valid(), detailColors: { offer: null } })?.detailColors).toEqual({ offer: null });
   });
 
+  it("prefers flat colors over a stale nested object and removes legacy color keys", () => {
+    const read = appearanceThemeSettingsOf({
+      ...appearanceSettingsToTheme(valid()),
+      detailColors: { offer: "#111111" },
+      priceColors: { oldPrice: "#222222" },
+      primaryColor: "#333333",
+      secondaryButtonColor: "#abcdef",
+    });
+    expect(read?.detailColors).toEqual({ secondaryButton: "#abcdef" });
+    expect(appearanceSettingsToRemove(valid())).toEqual(
+      expect.arrayContaining(["detailColors", "priceColors", "primaryColor"]),
+    );
+  });
+
   it("keeps picked colors when only a header control is saved", () => {
-    const current: AppearanceSettings = { ...valid(), detailColors: { offer: "#abcdef" }, hideHeaderText: true };
+    const current: AppearanceSettings = { ...valid(), detailColors: { offer: "#abcdef" }, hideHeaderText: true, hideMenu: true };
     const merged = mergeAppearance(current, { colorSchemes: current.colorSchemes, pageScheme: "scheme-1", hideLogo: true });
-    expect(merged.settings).toMatchObject({ detailColors: { offer: "#abcdef" }, hideHeaderText: true, hideLogo: true });
+    expect(merged.settings).toMatchObject({ detailColors: { offer: "#abcdef" }, hideHeaderText: true, hideMenu: true, hideLogo: true });
   });
 });
 

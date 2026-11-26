@@ -40,6 +40,7 @@ export interface SaveAppearanceInput {
   pageScheme?: string;
   hideLogo?: boolean;
   hideHeaderText?: boolean;
+  hideMenu?: boolean;
   searchEnabled?: boolean;
   headerHtml?: string;
   logoAlignment?: AppearanceLogoAlignment;

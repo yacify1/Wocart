@@ -264,6 +264,7 @@ export const SETTING = {
   cardImageRatio: text("شكل صورة المنتج", "Format de l'image produit", "Product image shape"),
   hideLogo: text("إخفاء شعار المتجر", "Masquer le logo", "Hide the store logo"),
   hideHeaderText: text("إخفاء اسم المتجر", "Masquer le nom de la boutique", "Hide the store name"),
+  hideMenu: text("إخفاء قائمة التنقل", "Masquer le menu de navigation", "Hide the navigation menu"),
   secondaryButtonColor: text("لون الزر الثانوي", "Couleur du bouton secondaire", "Secondary button color"),
   offerColor: text("لون شارة العرض", "Couleur du badge d’offre", "Offer badge color"),
   priceOldColor: text("لون السعر القديم", "Couleur de l’ancien prix", "Old price color"),

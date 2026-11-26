@@ -176,3 +176,41 @@ describe("how many items a section shows", () => {
     expect(issues).toEqual([expect.objectContaining({ code: "invalid-prop", path: "props.limit" })]);
   });
 });
+
+describe("category photos", () => {
+  const categoryWith = (width: number, height: number): Category =>
+    ({
+      id: "cat_icon",
+      name: "Icon category",
+      slug: "icon-category",
+      position: 0,
+      image: {
+        key: "products/icon.webp",
+        url: "https://media.boutique.test/products/icon.webp",
+        width,
+        height,
+        altText: "Icon photo",
+      },
+    }) as unknown as Category;
+
+  const renderCategory = (width: number, height: number) =>
+    renderSections([{ id: "c", type: "category-cards" }], fakeStorefront([], [categoryWith(width, height)]));
+
+  it("keeps a 48×48 WebP icon at its natural size in a contained tile", async () => {
+    const html = await renderCategory(48, 48);
+    const photo = /<img[^>]*data-category-photo[^>]*>/.exec(html)?.[0];
+    expect(html).toContain("is-icon");
+    expect(photo).toContain('width="48"');
+    expect(photo).toContain('height="48"');
+    expect(html).not.toContain("18vw, 62vw");
+  });
+
+  it("fills the tile with a photo that is not an icon", async () => {
+    const html = await renderCategory(600, 750);
+    const photo = /<img[^>]*data-category-photo[^>]*>/.exec(html)?.[0];
+    expect(html).not.toContain("is-icon");
+    expect(photo).toContain('width="600"');
+    expect(photo).toContain('height="750"');
+    expect(html).toContain("18vw, 62vw");
+  });
+});

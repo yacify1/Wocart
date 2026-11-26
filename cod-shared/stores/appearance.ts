@@ -32,6 +32,20 @@ const DETAIL_COLOR_FLAT_KEYS: Record<AppearanceDetailColorKey, string> = {
   newPrice: "priceNewColor",
 };
 
+const LEGACY_COLOR_KEYS = [
+  "detailColors",
+  "priceColors",
+  "primaryColor",
+  "secondaryColor",
+  "backgroundColor",
+  "textColor",
+  "headingColor",
+  "accentColor",
+  "buttonColor",
+  "buttonTextColor",
+  "borderColor",
+] as const;
+
 export const APPEARANCE_MAX_SCHEMES = 12;
 export const APPEARANCE_SCHEME_ID = /^[a-z0-9-]+$/;
 export const APPEARANCE_HEX = /^#[0-9a-f]{6}$/i;
@@ -88,6 +102,7 @@ export interface AppearanceSettings {
   /** A write that only saves colors leaves the other controls as they were. */
   hideLogo?: boolean;
   hideHeaderText?: boolean;
+  hideMenu?: boolean;
   searchEnabled?: boolean;
   headerHtml?: string;
   /** Where the logo sits, independent of the search icon and the header's own fields. */
@@ -252,17 +267,18 @@ export function appearanceDetailColorsProblem(value: unknown): string | null {
 }
 
 function detailColorsOf(stored: Record<string, unknown>): AppearanceDetailColors | undefined {
+  const flat: AppearanceDetailColors = {};
+  for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
+    const color = stored[flatKey];
+    if (typeof color === "string" && APPEARANCE_HEX.test(color)) flat[key] = color;
+  }
+  if (Object.keys(flat).length > 0) return flat;
   const nested = stored.detailColors;
   if (nested !== undefined && appearanceDetailColorsProblem(nested) === null) {
     const colors = nested as AppearanceDetailColors;
     if (Object.keys(colors).length > 0) return colors;
   }
-  const parsed: AppearanceDetailColors = {};
-  for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
-    const color = stored[flatKey];
-    if (typeof color === "string" && APPEARANCE_HEX.test(color)) parsed[key] = color;
-  }
-  return Object.keys(parsed).length > 0 ? parsed : undefined;
+  return undefined;
 }
 
 export function appearanceSectionsProblem(value: unknown): string | null {
@@ -293,6 +309,7 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
     pageScheme: settings.pageScheme,
     hideLogo: settings.hideLogo ?? false,
     hideHeaderText: settings.hideHeaderText ?? false,
+    hideMenu: settings.hideMenu ?? false,
     searchEnabled: settings.searchEnabled ?? true,
     headerHtml: sanitizeHeaderHtml(settings.headerHtml ?? ""),
     logoAlignment: settings.logoAlignment ?? "right",
@@ -311,7 +328,7 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
 
 /** Flat keys a cleared override — and the old grouped switch — must remove from a stored settings row. */
 export function appearanceSettingsToRemove(settings: AppearanceSettings): string[] {
-  const removed = ["hideHeroImages"];
+  const removed = ["hideHeroImages", ...LEGACY_COLOR_KEYS];
   for (const section of APPEARANCE_HOME_SECTIONS) {
     const edit = settings.sections?.[section.key];
     if (edit?.hidden !== true) removed.push(section.hiddenKey);
@@ -345,6 +362,7 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
     pageScheme: stored.pageScheme,
     hideLogo: stored.hideLogo ?? false,
     hideHeaderText: stored.hideHeaderText ?? false,
+    hideMenu: stored.hideMenu ?? false,
     searchEnabled: stored.searchEnabled ?? true,
     headerHtml: typeof stored.headerHtml === "string" ? stored.headerHtml : "",
     logoAlignment: APPEARANCE_LOGO_ALIGNMENTS.includes(stored.logoAlignment as AppearanceLogoAlignment)
@@ -405,7 +423,7 @@ export function appearanceSettingsProblem(value: unknown): string | null {
   if (!schemes.some((scheme) => scheme.id === value.pageScheme)) {
     return `pageScheme names "${value.pageScheme}", which the store does not have`;
   }
-  for (const key of ["hideLogo", "hideHeaderText", "searchEnabled"] as const) {
+  for (const key of ["hideLogo", "hideHeaderText", "hideMenu", "searchEnabled"] as const) {
     if (value[key] !== undefined && typeof value[key] !== "boolean") return `${key} must be on or off`;
   }
   if (value.headerHtml !== undefined && typeof value.headerHtml !== "string") {
@@ -450,6 +468,7 @@ export function mergeAppearance(
   const controls = {
     hideLogo: next.hideLogo ?? current?.hideLogo ?? false,
     hideHeaderText: next.hideHeaderText ?? current?.hideHeaderText ?? false,
+    hideMenu: next.hideMenu ?? current?.hideMenu ?? false,
     searchEnabled: next.searchEnabled ?? current?.searchEnabled ?? true,
     headerHtml: sanitizeHeaderHtml(next.headerHtml ?? current?.headerHtml ?? ""),
     logoAlignment: next.logoAlignment ?? current?.logoAlignment ?? "right",
@@ -484,19 +503,7 @@ export function mergeAppearance(
 
 /** Parse whatever the row holds into the tab's shape, or null. */
 export function appearanceSettingsOf(stored: Record<string, unknown> | null | undefined): AppearanceSettings | null {
-  if (!stored) return null;
-  const candidate = {
-    colorSchemes: stored.colorSchemes,
-    pageScheme: stored.pageScheme,
-    hideLogo: stored.hideLogo ?? false,
-    hideHeaderText: stored.hideHeaderText ?? false,
-    searchEnabled: stored.searchEnabled ?? true,
-    headerHtml: typeof stored.headerHtml === "string" ? stored.headerHtml : "",
-    logoAlignment: stored.logoAlignment ?? "right",
-    sections: stored.sections,
-    detailColors: detailColorsOf(stored),
-  };
-  return appearanceSettingsProblem(candidate) === null ? (candidate as AppearanceSettings) : null;
+  return appearanceThemeSettingsOf(stored);
 }
 
 export function appearanceTextProblem(key: string, value: string): string | null {
