@@ -8,8 +8,10 @@ import { mediaImage, type MediaDelivery } from "./delivery";
 import type { MediaImage } from "./model";
 import { toServedHtml } from "./rich-text";
 
+export type MediaSize = { width?: number | null; height?: number | null };
+
 /** An image a column holds by key, with the size when the row knows it. */
-export function imageOf(key: string | null | undefined, delivery: MediaDelivery, size: { width?: number | null; height?: number | null } = {}): MediaImage | null {
+export function imageOf(key: string | null | undefined, delivery: MediaDelivery, size: MediaSize = {}): MediaImage | null {
   return key ? mediaImage({ key, width: size.width ?? null, height: size.height ?? null }, delivery) : null;
 }
 
@@ -51,9 +53,18 @@ export function productImageViews(rows: readonly ProductImageRow[], delivery: Me
 type CategoryRow = typeof productCategories.$inferSelect;
 
 /** A category as the API shows it: its image, resolved from its key. */
-export function categoryView<T extends CategoryRow>(row: T, delivery: MediaDelivery): Omit<T, "imageKey"> & { image: MediaImage | null } {
+export function categoryView<T extends CategoryRow>(row: T, delivery: MediaDelivery, size: MediaSize = {}): Omit<T, "imageKey"> & { image: MediaImage | null } {
   const { imageKey, ...rest } = row;
-  return { ...rest, image: imageOf(imageKey, delivery) };
+  return { ...rest, image: imageOf(imageKey, delivery, size) };
+}
+
+/** Categories as the API shows them, with each image's size from the media library. */
+export function categoryViews<T extends CategoryRow>(
+  rows: readonly T[],
+  delivery: MediaDelivery,
+  sizes: ReadonlyMap<string, MediaSize> = new Map(),
+): Array<Omit<T, "imageKey"> & { image: MediaImage | null }> {
+  return rows.map((row) => categoryView(row, delivery, row.imageKey ? sizes.get(row.imageKey) ?? {} : {}));
 }
 
 /** A description as a browser reads it: an HTML one shows its `media:` keys at their URLs. */

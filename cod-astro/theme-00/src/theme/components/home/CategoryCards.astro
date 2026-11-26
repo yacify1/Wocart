@@ -13,6 +13,7 @@ import type { StoreFrontContent } from "@/theme/content";
 import type { categoryCards } from "@/theme/catalog/home/category-cards.def";
 import Section from "@/theme/components/ui/Section.astro";
 import SectionHead from "@/theme/components/ui/SectionHead.astro";
+import { imageSource, imageSrcset } from "@/theme/utils/images";
 
 type Props = InferProps<typeof categoryCards> & {
   blocks: BlocksHandle;
@@ -52,35 +53,39 @@ const tiles = shown.length + (showAll ? 1 : 0);
     <ul class="category-tiles swipe-row" style={`--tiles: ${Math.min(tiles, 5)}`}>
       {shown.map((category) => {
         const photo = photoFor(category);
+        const icon = photo ? isIcon(photo) : false;
         return (
           <li>
             <a
               href={store.href(storefrontPath("category", { slug: category.slug }))}
-              class:list={["category-tile", "plate", photo && isIcon(photo) && "is-icon"]}
+              class:list={["category-tile", "plate", icon && "is-icon"]}
               aria-label={message(content, "ariaBrowseCategoryProducts", { category: category.name }, store.locale)}
             >
               {photo ? (
-                isIcon(photo) ? (
+                photo.width !== null && photo.height !== null ? (
                   <Image
                     src={photo.url}
                     alt=""
-                    width={photo.width ?? 48}
-                    height={photo.height ?? 48}
-                    quality={100}
-                    loading="lazy"
-                    decoding="async"
-                    data-category-photo
-                  />
-                ) : photo.width === null || photo.height === null ? (
-                  <img
-                    src={photo.url}
-                    alt=""
+                    width={photo.width}
+                    height={photo.height}
+                    widths={icon ? undefined : [300, 450, 600]}
+                    sizes={icon ? undefined : "(min-width: 1024px) 18vw, 62vw"}
+                    fit="scale-down"
+                    quality={icon ? 100 : 82}
                     loading="lazy"
                     decoding="async"
                     data-category-photo
                   />
                 ) : (
-                  <Image src={photo.url} alt="" width={600} height={750} widths={[300, 450, 600]} sizes="(min-width: 1024px) 18vw, 62vw" quality={82} loading="lazy" decoding="async" data-category-photo />
+                  <img
+                    src={imageSource(photo.url, store.config.media, 600)}
+                    srcset={imageSrcset(photo.url, store.config.media, [300, 450, 600])}
+                    sizes="(min-width: 1024px) 18vw, 62vw"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    data-category-photo
+                  />
                 )
               ) : (
                 <span class="category-initial" aria-hidden="true">{category.name.charAt(0)}</span>

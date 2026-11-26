@@ -344,7 +344,7 @@ export function AppearanceSettings() {
     setDetailColors({ ...(saved.detailColors ?? {}) });
     setSelected((id) =>
       initial || !saved.colorSchemes.some((scheme) => scheme.id === id)
-        ? saved.pageScheme || saved.colorSchemes[0]?.id || ""
+        ? saved.colorSchemes[0]?.id || saved.pageScheme || ""
         : id,
     );
     if (initial) {
@@ -427,15 +427,13 @@ export function AppearanceSettings() {
     const look = LOOKS.find((candidate) => candidate.id === id);
     if (!look) return;
     setPageScheme(id);
-    setSelected(id);
+    setSelected(schemes[0]?.id ?? id);
     if (id === "scheme-1") {
       setSchemes(cloneSchemes(APPEARANCE_DEFAULT_SCHEMES));
       setDetailColors({});
       return;
     }
-    setSchemes((list) =>
-      list.map((scheme) => (scheme.id === id ? { ...scheme, colors: { ...look.colors } } : scheme)),
-    );
+    setSchemes((list) => list.map((scheme) => ({ ...scheme, colors: { ...look.colors } })));
   }
 
   function updateSection(key: AppearanceHomeSectionKey, change: Partial<SectionState>) {
@@ -504,7 +502,7 @@ export function AppearanceSettings() {
           </div>
           <div className="flex flex-wrap gap-2">
             {LOOKS.map((look) => {
-              const scheme = schemes.find((candidate) => candidate.id === look.id);
+              const scheme = schemes[0];
               if (!scheme) return null;
               const active = pageScheme === look.id && sameColors(scheme.colors, look.colors);
               return (

@@ -26,7 +26,7 @@ import appsRouter from "../apps/routes";
 
 const T = "2026-10-20T08:00:00.000Z";
 const KEY = (n: string) => `products/${n.repeat(32)}.webp`;
-const image = (key: string) => ({ key, url: `${TEST_DELIVERY.origin}/${key}`, width: null, height: null });
+const image = (key: string, width: number | null = null, height: number | null = null) => ({ key, url: `${TEST_DELIVERY.origin}/${key}`, width, height });
 
 let d1: TestD1;
 let app: OpenAPIHono<AppContext>;
@@ -74,6 +74,13 @@ describe("a category's image", () => {
     expect(created.body.data).not.toHaveProperty("imageKey");
     expect(created.body.data).not.toHaveProperty("imageUrl");
     expect((await answer(await app.request("/store/categories"))).body.data[0].image).toEqual(image(KEY("a")));
+  });
+
+  it("shows the uploaded image's stored dimensions in the dashboard and storefront", async () => {
+    await testMedia(d1).store({ key: KEY("e"), contentType: "image/webp", body: webp(), width: 800, height: 600 });
+    const created = await answer(await create({ imageKey: KEY("e") }));
+    expect(created.body.data.image).toEqual(image(KEY("e"), 800, 600));
+    expect((await answer(await app.request("/store/categories"))).body.data[0].image).toEqual(image(KEY("e"), 800, 600));
   });
 
   it("is refused as a URL, or a key not ready, and nothing is created", async () => {

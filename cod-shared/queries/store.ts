@@ -70,7 +70,8 @@ import type { CapturedTouches } from "../attribution/model";
 import { resolvePublicTracking } from "./tracking-config";
 import { chunkIds } from "./d1-limits";
 import type { MediaDelivery } from "../media/delivery";
-import { categoryView, imageOf, productImageView, productImageViews, servedDescription } from "../media/views";
+import { categoryViews, imageOf, productImageView, productImageViews, servedDescription } from "../media/views";
+import { loadMediaSizes } from "../media/sizes";
 import { getFooterPages, getPublicContact } from "./store-pages";
 import {
   loadCatalogSnapshot,
@@ -729,6 +730,7 @@ export async function getStoreProductByHandle(
   const rewards = await translateProducts(db, rewardSources, locale);
   const rewardProducts = new Map(rewards.products.map((reward) => [reward.id, reward]));
   const translatedCategory = category ? overlayTranslations("category", [category], categoryTranslations)[0]! : null;
+  const categorySizes = await loadMediaSizes(db, category?.imageKey ? [category.imageKey] : []);
 
   const translatedOffers = overlayTranslations("offer", offerRows, offerTranslations);
   // Quantity pricing travels apart from `offers`: published SDKs validate the
@@ -778,7 +780,7 @@ export async function getStoreProductByHandle(
   return {
     ...(await storefrontProduct(product, delivery)),
     inventory: totalInventory,
-    category: translatedCategory ? categoryView(translatedCategory, delivery) : null,
+    category: translatedCategory ? categoryViews([translatedCategory], delivery, categorySizes)[0]! : null,
     variants: variants.map((v) => ({
       id: v.id,
       variations: translated.variations(product.id, JSON.parse(v.variations)),
@@ -806,7 +808,7 @@ export async function getStoreProductByHandle(
 export async function getStoreCategories(db: AppDb, locale: StoreLocale | null, delivery: MediaDelivery) {
   const rows = await db.select().from(productCategories).orderBy(productCategories.position).all();
   const served = locale === null ? rows : overlayTranslations("category", rows, await listTranslations(db, "category", rows.map((row) => row.id), locale));
-  return served.map((row) => categoryView(row, delivery));
+  return categoryViews(served, delivery, await loadMediaSizes(db, served.map((row) => row.imageKey)));
 }
 
 export async function getStoreCommunes(db: AppDb, wilayaId: number) {

@@ -241,12 +241,14 @@ describe("category photos", () => {
     expect(html).not.toContain("18vw, 62vw");
   });
 
-  it("does not upscale a photo whose size the catalog does not know", async () => {
+  it("keeps a photo whose size the catalog does not know in its own shape", async () => {
     const html = await renderCategory(null, null);
     const photo = /<img[^>]*data-category-photo[^>]*>/.exec(html)?.[0];
-    expect(photo).toContain('src="https://media.boutique.test/products/icon.webp"');
+    expect(photo).toContain("/cdn-cgi/image/");
+    expect(photo).toContain("fit=scale-down");
+    expect(photo).toContain("18vw, 62vw");
     expect(photo).not.toContain('width="600"');
-    expect(photo).not.toContain("18vw, 62vw");
+    expect(photo).not.toContain("fit=cover");
   });
 
   it("fills the tile with a photo that is not an icon", async () => {

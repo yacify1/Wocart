@@ -144,14 +144,14 @@ describe("AppearanceSettings", () => {
     expect(background.value).toBe("#123456");
   });
 
-  it("opens on the scheme the storefront actually wears", async () => {
+  it("opens on the palette the live sections wear, not only the page", async () => {
     seam.appearance = { ...appearance(), pageScheme: "scheme-6" };
     await render();
-    const selected = Array.from(host.querySelectorAll("button")).find(
-      (node) => node.getAttribute("aria-pressed") === "true" && node.textContent?.includes("store.appearance_look_olive"),
+    const light = Array.from(host.querySelectorAll("button")).find(
+      (node) => node.getAttribute("aria-pressed") === "true" && node.textContent?.includes("Light"),
     );
-    expect(selected).toBeTruthy();
-    expect(host.querySelectorAll<HTMLInputElement>('input[aria-label$=" hex"]')[0]!.value).toBe("#f3f2e7");
+    expect(light).toBeTruthy();
+    expect(host.querySelectorAll<HTMLInputElement>('input[aria-label$=" hex"]')[0]!.value).toBe("#ffffff");
   });
 
   it("saves storefront controls on their own", async () => {
@@ -212,11 +212,19 @@ describe("AppearanceSettings", () => {
       node.textContent?.includes("store.appearance_look_olive"),
     )!;
     await click(look);
+    const background = host.querySelectorAll<HTMLInputElement>('input[aria-label$=" hex"]')[0]!;
+    await setValue(background, "#abcdef", "input");
+    await act(async () => background.dispatchEvent(new FocusEvent("blur", { bubbles: true })));
     await click(saveButton(section("store.appearance_colors_title")));
 
     expect(seam.calls[0]!.pageScheme).toBe("scheme-6");
+    const oliveColors = APPEARANCE_DEFAULT_SCHEMES.find((scheme) => scheme.id === "scheme-6")!.colors;
+    expect(seam.calls[0]!.colorSchemes.find((scheme: { id: string }) => scheme.id === "scheme-1").colors).toEqual({
+      ...oliveColors,
+      background: "#abcdef",
+    });
     expect(seam.calls[0]!.colorSchemes.find((scheme: { id: string }) => scheme.id === "scheme-6").colors).toEqual(
-      APPEARANCE_DEFAULT_SCHEMES.find((scheme) => scheme.id === "scheme-6")!.colors,
+      oliveColors,
     );
   });
 

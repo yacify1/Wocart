@@ -53,7 +53,7 @@
     "appearance_colors_title": "Couleurs",
     "appearance_colors_subtitle": "Toutes les couleurs de votre vitrine, palette par palette.",
     "appearance_looks_label": "Styles rapides",
-    "appearance_looks_hint": "Choisissez un style prêt, puis enregistrez. L’original restaure toutes les palettes et les couleurs de détail ; les autres restaurent les couleurs du style.",
+    "appearance_looks_hint": "Choisissez un style prêt, puis enregistrez. L’original restaure toutes les palettes et les couleurs de détail ; les autres habillent toute la boutique.",
     "appearance_schemes_label": "Palettes de couleurs",
     "appearance_schemes_hint": "La palette 1 est généralement la page ; les autres habillent les sections. Choisissez-en une pour modifier ses couleurs.",
     "appearance_page_badge": "Page",

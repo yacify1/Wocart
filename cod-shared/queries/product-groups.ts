@@ -2,7 +2,8 @@ import { eq, and, like, count, getTableColumns } from "drizzle-orm";
 import { productCategories, products } from "../db/schema";
 import type { AppDb } from "../db/client";
 import type { MediaDelivery } from "../media/delivery";
-import { categoryView } from "../media/views";
+import { categoryViews } from "../media/views";
+import { loadMediaSizes } from "../media/sizes";
 
 export interface GroupFilters {
   search?: string;
@@ -50,7 +51,7 @@ export async function getAllGroups(db: AppDb, delivery: MediaDelivery, filters?:
     .groupBy(productCategories.id)
     .orderBy(productCategories.position)
     .all();
-  return rows.map((row) => categoryView(row, delivery));
+  return categoryViews(rows, delivery, await loadMediaSizes(db, rows.map((row) => row.imageKey)));
 }
 
 export async function getGroupById(db: AppDb, id: string, delivery: MediaDelivery) {
@@ -64,7 +65,12 @@ export async function getGroupById(db: AppDb, id: string, delivery: MediaDeliver
       .where(eq(products.categoryId, id))
       .get(),
   ]);
-  return { ...categoryView(cat, delivery), children: childrenRows.map((row) => categoryView(row, delivery)), productsCount: productsCountRow?.count ?? 0 };
+  const sizes = await loadMediaSizes(db, [cat.imageKey, ...childrenRows.map((row) => row.imageKey)]);
+  return {
+    ...categoryViews([cat], delivery, sizes)[0]!,
+    children: categoryViews(childrenRows, delivery, sizes),
+    productsCount: productsCountRow?.count ?? 0,
+  };
 }
 
 export async function createGroup(db: AppDb, data: CreateGroupData, delivery: MediaDelivery) {

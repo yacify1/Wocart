@@ -5,7 +5,8 @@ import { toPlainText } from "../lib/rich-text";
 import { safeLikeTerm } from "./search";
 import type { MediaDelivery } from "../media/delivery";
 import { mediaKeysIn, storedRichText } from "../media/rich-text";
-import { categoryView, firstImage, productImageViews, servedDescription } from "../media/views";
+import { categoryViews, firstImage, productImageViews, servedDescription } from "../media/views";
+import { loadMediaSizes } from "../media/sizes";
 import type { VariantOption } from "../i18n/translations";
 import { pruneOptionTranslations } from "./translations";
 
@@ -125,6 +126,7 @@ async function buildProductDetail(db: AppDb, productId: string, delivery: MediaD
     db.select().from(productImages).where(eq(productImages.productId, productId)).orderBy(productImages.position).all(),
     db.select({ total: sum(productVariants.inventory) }).from(productVariants).where(eq(productVariants.productId, productId)).get(),
   ]);
+  const categorySizes = await loadMediaSizes(db, category?.imageKey ? [category.imageKey] : []);
 
   const variantOptions = product.variantOptions ? JSON.parse(product.variantOptions) : null;
   const tags = product.tags ? JSON.parse(product.tags) : [];
@@ -144,7 +146,7 @@ async function buildProductDetail(db: AppDb, productId: string, delivery: MediaD
     tags,
     description: servedDescription(product.description, product.descriptionFormat, delivery),
     descriptionPlain: await deriveDescriptionPlain(product.description, product.descriptionFormat),
-    category: category ? categoryView(category, delivery) : null,
+    category: category ? categoryViews([category], delivery, categorySizes)[0]! : null,
     variants: parsedVariants,
     images: productImageViews(images, delivery),
     variantsCount: parsedVariants.length,
