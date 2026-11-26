@@ -13,6 +13,7 @@ import {
   APPEARANCE_HEADER_HTML_MAX,
   APPEARANCE_HOME_SECTIONS,
   APPEARANCE_LOGO_ALIGNMENTS,
+  APPEARANCE_MARQUEE_TEXT_MAX,
   APPEARANCE_TEXT_KEYS,
   APPEARANCE_TEXT_LIMITS,
   APPEARANCE_HEX,
@@ -116,9 +117,15 @@ function normalizedHex(raw: string): string | null {
 
 type SectionState = StoreAppearance["sections"][AppearanceHomeSectionKey];
 
+function emptySection(key: AppearanceHomeSectionKey): SectionState {
+  return key === "marquee"
+    ? { hidden: false, image: null, text: "", color: null }
+    : { hidden: false, image: null };
+}
+
 function emptySections(): StoreAppearance["sections"] {
   return Object.fromEntries(
-    APPEARANCE_HOME_SECTIONS.map(({ key }) => [key, { hidden: false, image: null } satisfies SectionState]),
+    APPEARANCE_HOME_SECTIONS.map(({ key }) => [key, emptySection(key)]),
   ) as StoreAppearance["sections"];
 }
 
@@ -138,6 +145,9 @@ function sectionEdits(sections: StoreAppearance["sections"]): AppearanceSectionE
       {
         hidden: sections[key]?.hidden ?? false,
         image: IMAGE_SECTION_KEYS.has(key) ? sectionImageOf(sections[key]?.image ?? null) : null,
+        ...(key === "marquee"
+          ? { text: sections.marquee?.text ?? null, color: sections.marquee?.color ?? null }
+          : {}),
       },
     ]),
   ) as AppearanceSectionEdits;
@@ -185,7 +195,7 @@ function ColorField({
   }
 
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-border px-3 py-2">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border px-3 py-2.5">
       {isAuto && swatch ? (
         <span
           aria-hidden="true"
@@ -203,7 +213,7 @@ function ColorField({
           className="size-8 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
         />
       )}
-      <span className="min-w-0 flex-1 truncate text-sm text-foreground">{label}</span>
+      <span className="min-w-0 flex-1 basis-20 break-words text-sm leading-5 text-foreground">{label}</span>
       <Input
         value={text}
         onChange={(event) => commit(event.target.value)}
@@ -211,7 +221,7 @@ function ColorField({
         aria-label={`${label} hex`}
         spellCheck={false}
         maxLength={7}
-        className="h-7 w-24 shrink-0 px-2 font-mono text-xs uppercase"
+        className="h-8 w-24 shrink-0 px-2 font-mono text-xs uppercase"
       />
       {onClear && (
         <button
@@ -219,8 +229,10 @@ function ColorField({
           onClick={onClear}
           disabled={isAuto}
           aria-label={`${label} ${autoLabel ?? "auto"}`}
-          className={`shrink-0 rounded-md border px-2 py-1 text-[0.65rem] font-semibold ${
-            isAuto ? "border-primary/40 bg-primary/[0.06] text-foreground" : "border-border text-muted-foreground hover:text-foreground"
+          className={`inline-flex h-8 shrink-0 items-center rounded-md border px-2.5 text-[0.65rem] font-semibold transition-colors ${
+            isAuto
+              ? "border-primary/40 bg-primary/[0.06] text-foreground"
+              : "border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
           }`}
         >
           {autoLabel ?? "Auto"}
@@ -349,9 +361,13 @@ export function AppearanceSettings() {
     });
     const nextSections = emptySections();
     for (const { key } of APPEARANCE_HOME_SECTIONS) {
+      const savedSection = saved.sections?.[key];
       nextSections[key] = {
-        hidden: saved.sections?.[key]?.hidden ?? false,
-        image: saved.sections?.[key]?.image ?? null,
+        hidden: savedSection?.hidden ?? false,
+        image: savedSection?.image ?? null,
+        ...(key === "marquee"
+          ? { text: savedSection?.text ?? "", color: savedSection?.color ?? null }
+          : {}),
       };
     }
     setSections(nextSections);
@@ -412,6 +428,11 @@ export function AppearanceSettings() {
     if (!look) return;
     setPageScheme(id);
     setSelected(id);
+    if (id === "scheme-1") {
+      setSchemes(cloneSchemes(APPEARANCE_DEFAULT_SCHEMES));
+      setDetailColors({});
+      return;
+    }
     setSchemes((list) =>
       list.map((scheme) => (scheme.id === id ? { ...scheme, colors: { ...look.colors } } : scheme)),
     );
@@ -706,6 +727,34 @@ export function AppearanceSettings() {
                   checked={section?.hidden ?? false}
                   onChange={(hidden) => updateSection(key, { hidden })}
                 />
+                {key === "marquee" && (
+                  <div className="mt-3 space-y-2 border-t border-border pt-3">
+                    <Field
+                      label={t("store.appearance_section_marquee_text")}
+                      hint={`${(section?.text ?? "").length}/${APPEARANCE_MARQUEE_TEXT_MAX}`}
+                    >
+                      <Textarea
+                        value={section?.text ?? ""}
+                        maxLength={APPEARANCE_MARQUEE_TEXT_MAX}
+                        rows={2}
+                        spellCheck={false}
+                        onChange={(event) => updateSection(key, { text: event.target.value })}
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t("store.appearance_section_marquee_text_hint")}
+                      </p>
+                    </Field>
+                    <ColorField
+                      label={t("store.appearance_section_marquee_color")}
+                      value={section?.color ?? current?.colors.heading ?? "#0f1626"}
+                      swatch={current?.colors.heading}
+                      isAuto={!section?.color}
+                      autoLabel={t("store.appearance_color_auto")}
+                      onClear={() => updateSection(key, { color: null })}
+                      onChange={(color) => updateSection(key, { color })}
+                    />
+                  </div>
+                )}
                 {IMAGE_SECTION_KEYS.has(key) && (
                   <div className="mt-3 border-t border-border pt-3">
                     <p className="mb-2 text-xs font-medium text-muted-foreground">

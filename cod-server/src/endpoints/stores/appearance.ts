@@ -31,6 +31,7 @@ import {
   APPEARANCE_HEX,
   APPEARANCE_HOME_SECTIONS,
   APPEARANCE_LOGO_ALIGNMENTS,
+  APPEARANCE_MARQUEE_TEXT_MAX,
   APPEARANCE_MAX_SCHEMES,
   APPEARANCE_MEDIA_KEY,
   APPEARANCE_SCHEME_ID,
@@ -93,6 +94,8 @@ const appearanceImageSchema = z.object({
 const sectionEditSchema = z.object({
   hidden: z.boolean().nullable().optional(),
   image: appearanceImageSchema.nullable().optional(),
+  text: z.string().max(APPEARANCE_MARQUEE_TEXT_MAX).nullable().optional(),
+  color: z.string().regex(APPEARANCE_HEX).nullable().optional(),
 });
 
 const detailColor = z.string().regex(APPEARANCE_HEX).nullable().optional();
@@ -113,6 +116,8 @@ const sectionStateSchema = z.object({
       height: z.number().nullable(),
     })
     .nullable(),
+  text: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
 });
 
 const appearanceSchema = z.object({
@@ -181,6 +186,9 @@ async function appearanceOf(db: ReturnType<typeof getDb>, store: StoreRow, env: 
           image: source
             ? imageOf(source.key, delivery, { width: source.width, height: source.height })
             : null,
+          ...(section.key === "marquee"
+            ? { text: edit?.text ?? "", color: edit?.color ?? null }
+            : {}),
         },
       ];
     }),

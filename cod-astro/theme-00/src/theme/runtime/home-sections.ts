@@ -50,6 +50,66 @@ export type HomeSectionState = {
   picked: PickedImage | null;
 };
 
+export type MarqueeSettings = { text: string | null; color: string | null };
+
+const MARQUEE_TAGS = new Set(["a", "b", "strong", "i", "em", "u", "small", "span", "br"]);
+const MARQUEE_DISCARDED =
+  /<(script|style|iframe|object|embed|svg|template)\b[^>]*>[\s\S]*?<\/\1\s*>|<!--[\s\S]*?-->/gi;
+const MARQUEE_TAG = /<\/?([a-z][a-z0-9]*)\b([^>]*)>/gi;
+const MARQUEE_ATTR = /([a-z][a-z0-9-]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
+const MARQUEE_HREF = /^(https?:\/\/|\/|#|\?|mailto:|tel:)/i;
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+function safeMarqueeHtml(value: string): string {
+  const source = value.replace(MARQUEE_DISCARDED, "");
+  let output = "";
+  let last = 0;
+  for (const match of source.matchAll(MARQUEE_TAG)) {
+    const start = match.index ?? 0;
+    output += escapeHtml(source.slice(last, start));
+    last = start + match[0].length;
+    const tag = match[1]!.toLowerCase();
+    if (!MARQUEE_TAGS.has(tag)) continue;
+    if (match[0].startsWith("</")) {
+      output += `</${tag}>`;
+      continue;
+    }
+    const attributes: string[] = [];
+    for (const attribute of (match[2] ?? "").matchAll(MARQUEE_ATTR)) {
+      const name = attribute[1]!.toLowerCase();
+      const raw = attribute[3] ?? attribute[4] ?? attribute[5] ?? "";
+      if (name === "class") {
+        const className = raw.replace(/[^A-Za-z0-9 _-]/g, "").trim().slice(0, 120);
+        if (className) attributes.push(`class="${escapeHtml(className)}"`);
+      } else if (tag === "a" && name === "href" && MARQUEE_HREF.test(raw.trim())) {
+        attributes.push(`href="${escapeHtml(raw.trim())}"`);
+      } else if (tag === "a" && name === "target" && raw.trim() === "_blank") {
+        attributes.push('target="_blank"', 'rel="noopener noreferrer"');
+      }
+    }
+    output += `<${tag}${attributes.length ? ` ${attributes.join(" ")}` : ""}>`;
+  }
+  return output + escapeHtml(source.slice(last));
+}
+
+/** The Appearance tab's scrolling-text override; absent values keep the shipped band. */
+export function marqueeSettingsOf(store: StoreContext): MarqueeSettings {
+  const values = settingsOf(store) as unknown as Record<string, unknown>;
+  const text = values.homeMarqueeText;
+  const color = values.homeMarqueeColor;
+  const safeText = typeof text === "string" ? safeMarqueeHtml(text).trim() : "";
+  return {
+    text: safeText || null,
+    color: typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color) ? color : null,
+  };
+}
+
 /** One home section's visibility and photo, for the page and the section components alike. */
 export function homeSectionStateOf(store: StoreContext, type: string): HomeSectionState {
   const key = homeSectionTypeOf(type);

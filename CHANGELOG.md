@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or be set to one color that holds on every scheme. A separate switch hides
   just the store name when the header has no logo image, without hiding the
   logo, changing its alignment or turning search off.
+- The Scrolling text section can carry a merchant's own text and simple HTML,
+  with a color that follows the page scheme until a color is chosen. Safe
+  formatting and links are kept; scripts and unknown tags are dropped.
 
 ### Changed
 
@@ -81,6 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reaches the live store instead of a different preset. Small category photos
   such as 48×48 WebP icons are centered at their natural size instead of being
   stretched across a wide tile.
+- Appearance color rows wrap instead of crowding each other, and Original
+  restores every palette and detail color instead of leaving old test colors
+  behind. Category uploads whose size the catalog does not know fill their tile
+  proportionally instead of being enlarged to a guessed crop.
 - WebP uploads from a browser that reports no MIME type keep `image/webp` on
   the form part the media host receives. The dashboard derives the type from
   the file's extension and sends a matching blob, so ImageKit cannot reject a

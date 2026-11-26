@@ -259,6 +259,7 @@ describe("the theme's settings", () => {
       logoAlignment: "right",
       homeHeroHidden: false,
       homeMarqueeHidden: false,
+      homeMarqueeText: "",
       homeCategoryCardsHidden: false,
       homeProductTabsHidden: false,
       homeImageBannerHidden: false,

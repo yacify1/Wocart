@@ -286,6 +286,62 @@ describe("logo alignment and home sections", () => {
     expect(appearanceThemeSettingsOf({ ...flat, hideHeroImages: true })?.sections?.hero).toEqual({ hidden: true });
     expect(appearanceThemeSettingsOf({ ...flat, hideHeroImages: true, homeHeroHidden: false })?.sections?.hero).toBeUndefined();
   });
+
+  it("validates scrolling text only on the marquee and sanitizes it before writing", () => {
+    const settings: AppearanceSettings = {
+      ...valid(),
+      sections: {
+        marquee: {
+          text: '<script>alert(1)</script><img src="x" onerror="alert(2)"><strong>Free delivery</strong>',
+          color: "#123456",
+        },
+      },
+    };
+    expect(appearanceSettingsProblem(settings)).toBeNull();
+    expect(appearanceSettingsToTheme(settings)).toMatchObject({
+      homeMarqueeText: "<strong>Free delivery</strong>",
+      homeMarqueeColor: "#123456",
+    });
+    expect(appearanceSettingsToTheme(settings).homeMarqueeText).not.toContain("onerror");
+    expect(appearanceSettingsProblem({ ...valid(), sections: { hero: { text: "not allowed" } } })).toMatch(
+      /cannot hold scrolling text/,
+    );
+    expect(appearanceSettingsProblem({ ...valid(), sections: { marquee: { color: "gold" } } })).toMatch(
+      /needs a hex color/,
+    );
+    expect(
+      appearanceSettingsProblem({ ...valid(), sections: { marquee: { text: "x".repeat(501) } } }),
+    ).toMatch(/at most 500/);
+  });
+
+  it("reads and clears the scrolling-text override without disturbing other sections", () => {
+    const stored = {
+      ...appearanceSettingsToTheme(valid()),
+      homeMarqueeText: "<strong>Free delivery</strong>",
+      homeMarqueeColor: "#123456",
+    };
+    expect(appearanceThemeSettingsOf(stored)?.sections?.marquee).toEqual({
+      text: "<strong>Free delivery</strong>",
+      color: "#123456",
+    });
+
+    const current: AppearanceSettings = {
+      ...valid(),
+      sections: { hero: { hidden: true }, marquee: { text: "Free delivery", color: "#abcdef" } },
+    };
+    expect(
+      mergeAppearance(current, { ...valid(), sections: { marquee: {} } }).settings?.sections?.marquee,
+    ).toEqual({ text: "Free delivery", color: "#abcdef" });
+    const cleared = mergeAppearance(current, {
+      ...valid(),
+      sections: { marquee: { text: null, color: null } },
+    });
+    expect(cleared.settings?.sections?.marquee).toBeUndefined();
+    expect(cleared.settings?.sections?.hero).toEqual({ hidden: true });
+    expect(appearanceSettingsToRemove(cleared.settings!)).toEqual(
+      expect.arrayContaining(["homeMarqueeText", "homeMarqueeColor"]),
+    );
+  });
 });
 
 describe("detail colors", () => {

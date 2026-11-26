@@ -73,8 +73,17 @@ async function render() {
   });
 }
 
-async function setValue(element: HTMLInputElement | HTMLSelectElement, value: string, event: string) {
-  const prototype = element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+async function setValue(
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+  value: string,
+  event: string,
+) {
+  const prototype =
+    element instanceof HTMLSelectElement
+      ? HTMLSelectElement.prototype
+      : element instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype;
   await act(async () => {
     Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(element, value);
     element.dispatchEvent(new Event(event, { bubbles: true }));
@@ -209,6 +218,52 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[0]!.colorSchemes.find((scheme: { id: string }) => scheme.id === "scheme-6").colors).toEqual(
       APPEARANCE_DEFAULT_SCHEMES.find((scheme) => scheme.id === "scheme-6")!.colors,
     );
+  });
+
+  it("resets every palette and detail color when Original is chosen", async () => {
+    const schemes = JSON.parse(JSON.stringify(APPEARANCE_DEFAULT_SCHEMES));
+    schemes[1].colors.background = "#123456";
+    seam.appearance = {
+      ...appearance(),
+      colorSchemes: schemes,
+      pageScheme: "scheme-2",
+      detailColors: { offer: "#abcdef" },
+    };
+    await render();
+
+    const original = [...host.querySelectorAll("button")].find((node) =>
+      node.textContent?.includes("store.appearance_look_original"),
+    )!;
+    await click(original);
+    await click(saveButton(section("store.appearance_colors_title")));
+
+    expect(seam.calls[0]!.pageScheme).toBe("scheme-1");
+    expect(seam.calls[0]!.colorSchemes).toEqual(APPEARANCE_DEFAULT_SCHEMES);
+    expect(seam.calls[0]!.detailColors).toEqual({});
+  });
+
+  it("saves scrolling text and color, then returns the color to Auto", async () => {
+    await render();
+    const card = section("store.appearance_sections_title");
+    const textarea = card.querySelector("textarea")!;
+    await setValue(textarea, "<strong>Free delivery</strong>", "input");
+    const color = card.querySelector<HTMLInputElement>(
+      'input[aria-label="store.appearance_section_marquee_color hex"]',
+    )!;
+    await setValue(color, "#123456", "input");
+    await act(async () => color.dispatchEvent(new FocusEvent("blur", { bubbles: true })));
+
+    await click(saveButton(card));
+    expect(Object.keys(seam.calls[0]!)).toEqual(["sections"]);
+    expect(seam.calls[0]!.sections.marquee.text).toBe("<strong>Free delivery</strong>");
+    expect(seam.calls[0]!.sections.marquee.color).toBe("#123456");
+
+    const auto = [...card.querySelectorAll<HTMLButtonElement>("button")].find((node) =>
+      node.getAttribute("aria-label")?.includes("store.appearance_section_marquee_color"),
+    )!;
+    await click(auto);
+    await click(saveButton(card));
+    expect(seam.calls[1]!.sections.marquee.color).toBeNull();
   });
 
   it("saves the hide-menu switch without touching colors or texts", async () => {

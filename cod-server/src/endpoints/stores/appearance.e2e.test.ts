@@ -266,6 +266,21 @@ describe("the storefront config", () => {
     });
   });
 
+  it("reads the scrolling-text override from the flat row the API writes", async () => {
+    const id = await seedStore();
+    await saveThemeSettings(db, id, "theme-00", {
+      colorSchemes: APPEARANCE_DEFAULT_SCHEMES,
+      pageScheme: "scheme-1",
+      homeMarqueeText: "<strong>Free delivery</strong>",
+      homeMarqueeColor: "#123456",
+    });
+
+    expect(appearanceThemeSettingsOf(await getThemeSettings(db, id, "theme-00"))?.sections?.marquee).toEqual({
+      text: "<strong>Free delivery</strong>",
+      color: "#123456",
+    });
+  });
+
   it("reads the detail colors the dashboard saved as flat theme keys", async () => {
     const id = await seedStore();
     await saveThemeSettings(db, id, "theme-00", {

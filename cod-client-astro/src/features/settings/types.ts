@@ -80,7 +80,10 @@ export interface StoreAppearance {
   /** Where the logo sits, regardless of the header's own logo position. */
   logoAlignment: AppearanceLogoAlignment;
   /** One entry for every home section, including an image ready to preview. */
-  sections: Record<AppearanceHomeSectionKey, { hidden: boolean; image: MediaImage | null }>;
+  sections: Record<
+    AppearanceHomeSectionKey,
+    { hidden: boolean; image: MediaImage | null; text?: string | null; color?: string | null }
+  >;
   detailColors: AppearanceDetailColors;
   /** Saved text edits, `{ ar: { heroTitle: "…" } }`. */
   texts: Partial<Record<StoreLocale, Record<string, string>>>;

@@ -97,6 +97,8 @@ export const THEME_SETTINGS = [
       { key: "homeHeroImage", kind: "image", label: HOME_SETTING.hero.image },
       { key: "homeMarqueeHidden", kind: "boolean", label: HOME_SETTING.marquee.hidden, default: false },
       { key: "homeMarqueeImage", kind: "image", label: HOME_SETTING.marquee.image },
+      { key: "homeMarqueeText", kind: "textarea", label: HOME_SETTING.marquee.text, default: "" },
+      { key: "homeMarqueeColor", kind: "color", label: HOME_SETTING.marquee.color },
       { key: "homeCategoryCardsHidden", kind: "boolean", label: HOME_SETTING["category-cards"].hidden, default: false },
       { key: "homeCategoryCardsImage", kind: "image", label: HOME_SETTING["category-cards"].image },
       { key: "homeProductTabsHidden", kind: "boolean", label: HOME_SETTING["product-tabs"].hidden, default: false },

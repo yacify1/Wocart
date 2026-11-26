@@ -123,6 +123,42 @@ describe("per-section visibility and photos", () => {
   });
 });
 
+describe("scrolling text controls", () => {
+  const marquee = [{ id: "m", type: "marquee" }] as ComponentInstance[];
+
+  it("uses the saved text and color instead of the theme's messages", async () => {
+    const html = await renderSections(marquee, storefront, {
+      themeSettings: {
+        homeMarqueeText: "<strong>Free delivery</strong>",
+        homeMarqueeColor: "#123456",
+      },
+    });
+    expect(html).toContain("<strong>Free delivery</strong>");
+    expect(html).toContain("color: #123456");
+    expect(html).toContain("Free delivery");
+  });
+
+  it("keeps the shipped messages and theme color when nothing is saved", async () => {
+    const html = await renderSections(marquee, storefront);
+    expect(html).toContain(en.trust1Title);
+    expect(html).not.toContain("color: #");
+  });
+
+  it("drops scripts and unsafe attributes before writing saved HTML into the band", async () => {
+    const html = await renderSections(marquee, storefront, {
+      themeSettings: {
+        homeMarqueeText:
+          '<script>alert(1)</script><img src="x" onerror="alert(2)"><strong>Safe</strong> <a href="javascript:alert(3)">bad</a> <a href="https://example.test">good</a>',
+      },
+    });
+    expect(html).toContain("<strong>Safe</strong>");
+    expect(html).toContain('<a href="https://example.test">good</a>');
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("onerror");
+    expect(html).not.toContain("javascript:");
+  });
+});
+
 describe("section titles", () => {
   it("best sellers and new arrivals show the saved title, else the pack's", async () => {
     const edited = await renderSections(
@@ -178,7 +214,7 @@ describe("how many items a section shows", () => {
 });
 
 describe("category photos", () => {
-  const categoryWith = (width: number, height: number): Category =>
+  const categoryWith = (width: number | null, height: number | null): Category =>
     ({
       id: "cat_icon",
       name: "Icon category",
@@ -193,7 +229,7 @@ describe("category photos", () => {
       },
     }) as unknown as Category;
 
-  const renderCategory = (width: number, height: number) =>
+  const renderCategory = (width: number | null, height: number | null) =>
     renderSections([{ id: "c", type: "category-cards" }], fakeStorefront([], [categoryWith(width, height)]));
 
   it("keeps a 48×48 WebP icon at its natural size in a contained tile", async () => {
@@ -203,6 +239,14 @@ describe("category photos", () => {
     expect(photo).toContain('width="48"');
     expect(photo).toContain('height="48"');
     expect(html).not.toContain("18vw, 62vw");
+  });
+
+  it("does not upscale a photo whose size the catalog does not know", async () => {
+    const html = await renderCategory(null, null);
+    const photo = /<img[^>]*data-category-photo[^>]*>/.exec(html)?.[0];
+    expect(photo).toContain('src="https://media.boutique.test/products/icon.webp"');
+    expect(photo).not.toContain('width="600"');
+    expect(photo).not.toContain("18vw, 62vw");
   });
 
   it("fills the tile with a photo that is not an icon", async () => {

@@ -7,23 +7,34 @@ import { schemeClass } from "@wocart/theme";
 import { isPreview, type BlocksHandle } from "@wocart/theme/astro";
 import { Icon } from "astro-icon/components";
 import type { marquee } from "@/theme/catalog/home/marquee.def";
+import { marqueeSettingsOf } from "@/theme/runtime/home-sections";
 
 type Props = InferProps<typeof marquee> & { blocks: BlocksHandle };
 
 const { message1, message2, message3, message4, speed, scheme, blocks } = Astro.props;
-const messages = [message1, message2, message3, message4].filter((message): message is string => Boolean(message && message.trim()));
+const override = marqueeSettingsOf(Astro.locals.store);
+const messages = override.text
+  ? [override.text]
+  : [message1, message2, message3, message4].filter((message): message is string => Boolean(message && message.trim()));
+const readable = override.text
+  ? override.text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
+  : messages.join(" — ");
 const seconds = { slow: 48, normal: 32, fast: 20 }[speed] ?? 32;
+const style = [`--marquee-time: ${seconds}s`, ...(override.color ? [`color: ${override.color}`] : [])].join("; ");
 const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.length))) }, () => messages).flat();
 ---
 
 {(messages.length > 0 || isPreview(blocks)) && (
-  <div class:list={["marquee", schemeClass(scheme)]} style={`--marquee-time: ${seconds}s`}>
-    <p class="sr-only">{messages.join(" — ")}</p>
+  <div class:list={["marquee", schemeClass(scheme)]} style={style}>
+    <p class="sr-only">{readable}</p>
     <div class="marquee-track" aria-hidden="true">
       {[0, 1].map(() => (
         <div class="marquee-run">
           {run.map((message) => (
-            <span class="marquee-item">{message}<Icon name="heroicons:sparkles-solid" /></span>
+            <span class="marquee-item">
+              {override.text ? <Fragment set:html={message} /> : message}
+              <Icon name="heroicons:sparkles-solid" />
+            </span>
           ))}
         </div>
       ))}

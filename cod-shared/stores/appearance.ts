@@ -84,6 +84,10 @@ export interface AppearanceSectionEdit {
   hidden?: boolean | null;
   /** A media key; null removes the merchant's photo. */
   image?: AppearanceImage | null;
+  /** Scrolling text, with simple HTML; null uses the theme's messages. Marquee only. */
+  text?: string | null;
+  /** A custom scrolling-text color; null follows the page scheme. Marquee only. */
+  color?: string | null;
 }
 
 export type AppearanceSectionEdits = Partial<Record<AppearanceHomeSectionKey, AppearanceSectionEdit>>;
@@ -147,6 +151,9 @@ export const APPEARANCE_DEFAULT_SCHEMES: AppearanceColorScheme[] = [
 ];
 
 export const APPEARANCE_HEADER_HTML_MAX = 2000;
+export const APPEARANCE_MARQUEE_TEXT_MAX = 500;
+const MARQUEE_TEXT_FLAT_KEY = "homeMarqueeText";
+const MARQUEE_COLOR_FLAT_KEY = "homeMarqueeColor";
 
 const HEADER_HTML_TAGS = new Set(["a", "b", "strong", "i", "em", "u", "small", "span", "br"]);
 const HEADER_HTML_ATTR = /([a-z][a-z0-9-]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
@@ -160,6 +167,10 @@ const escapeHtml = (value: string): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+
+const MARQUEE_DISCARDED_HTML =
+  /<(script|style|iframe|object|embed|svg|template)\b[^>]*>[\s\S]*?<\/\1\s*>|<!--[\s\S]*?-->/gi;
+const MARQUEE_ANY_TAG = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
 
 export function sanitizeHeaderHtml(value: string): string {
   let output = "";
@@ -195,6 +206,15 @@ export function sanitizeHeaderHtml(value: string): string {
   }
   return output + escapeHtml(value.slice(last));
 }
+
+const sanitizeMarqueeHtml = (value: string): string =>
+  sanitizeHeaderHtml(
+    value
+      .replace(MARQUEE_DISCARDED_HTML, "")
+      .replace(MARQUEE_ANY_TAG, (tag, name: string) =>
+        HEADER_HTML_TAGS.has(name.toLowerCase()) ? tag : "",
+      ),
+  );
 
 /** The theme text keys the Appearance tab edits, with what each one is. */
 export const APPEARANCE_TEXT_KEYS = [
@@ -286,7 +306,9 @@ export function appearanceSectionsProblem(value: unknown): string | null {
   for (const [key, edit] of Object.entries(value)) {
     if (!SECTION_KEYS.includes(key)) return `"${key}" is not a home section`;
     if (!isRecord(edit)) return `section "${key}" must be an object`;
-    const unknown = Object.keys(edit).find((name) => name !== "hidden" && name !== "image");
+    const unknown = Object.keys(edit).find(
+      (name) => !["hidden", "image", "text", "color"].includes(name),
+    );
     if (unknown !== undefined) return `section "${key}" has an unknown key "${unknown}"`;
     if (edit.hidden !== undefined && edit.hidden !== null && typeof edit.hidden !== "boolean") {
       return `section "${key}" must be hidden or shown`;
@@ -294,6 +316,20 @@ export function appearanceSectionsProblem(value: unknown): string | null {
     if (edit.image !== undefined && edit.image !== null) {
       const problem = appearanceImageProblem(edit.image);
       if (problem) return `section "${key}" image ${problem}`;
+    }
+    if ((edit.text !== undefined || edit.color !== undefined) && key !== "marquee") {
+      return `section "${key}" cannot hold scrolling text`;
+    }
+    if (edit.text !== undefined && edit.text !== null) {
+      if (typeof edit.text !== "string") return `section "${key}" text must be text`;
+      if (edit.text.length > APPEARANCE_MARQUEE_TEXT_MAX) {
+        return `scrolling text holds at most ${APPEARANCE_MARQUEE_TEXT_MAX} characters`;
+      }
+    }
+    if (edit.color !== undefined && edit.color !== null) {
+      if (typeof edit.color !== "string" || !APPEARANCE_HEX.test(edit.color)) {
+        return `scrolling text needs a hex color`;
+      }
     }
   }
   return null;
@@ -319,6 +355,10 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
     if (edit?.hidden === true) flat[section.hiddenKey] = true;
     if (edit?.image !== undefined && edit.image !== null) flat[section.imageKey] = edit.image;
   }
+  const marquee = settings.sections?.marquee;
+  const marqueeText = typeof marquee?.text === "string" ? sanitizeMarqueeHtml(marquee.text).trim() : "";
+  if (marqueeText) flat[MARQUEE_TEXT_FLAT_KEY] = marqueeText;
+  if (marquee?.color) flat[MARQUEE_COLOR_FLAT_KEY] = marquee.color;
   for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
     const color = settings.detailColors?.[key];
     if (color) flat[flatKey] = color;
@@ -329,6 +369,9 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
 /** Flat keys a cleared override — and the old grouped switch — must remove from a stored settings row. */
 export function appearanceSettingsToRemove(settings: AppearanceSettings): string[] {
   const removed = ["hideHeroImages", ...LEGACY_COLOR_KEYS];
+  const marquee = settings.sections?.marquee;
+  if (!marquee?.text || !sanitizeMarqueeHtml(marquee.text).trim()) removed.push(MARQUEE_TEXT_FLAT_KEY);
+  if (!marquee?.color) removed.push(MARQUEE_COLOR_FLAT_KEY);
   for (const section of APPEARANCE_HOME_SECTIONS) {
     const edit = settings.sections?.[section.key];
     if (edit?.hidden !== true) removed.push(section.hiddenKey);
@@ -349,6 +392,12 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
     if (stored[section.hiddenKey] === true) edit.hidden = true;
     const image = stored[section.imageKey];
     if (image !== undefined && appearanceImageProblem(image) === null) edit.image = image as AppearanceImage;
+    if (section.key === "marquee") {
+      const text = stored[MARQUEE_TEXT_FLAT_KEY];
+      if (typeof text === "string" && text.trim()) edit.text = sanitizeMarqueeHtml(text).trim();
+      const color = stored[MARQUEE_COLOR_FLAT_KEY];
+      if (typeof color === "string" && APPEARANCE_HEX.test(color)) edit.color = color;
+    }
     if (Object.keys(edit).length > 0) sections[section.key] = edit;
   }
   if (stored.hideHeroImages === true) {
@@ -461,9 +510,19 @@ export function mergeAppearance(
     const merged: AppearanceSectionEdit = { ...sections[key as AppearanceHomeSectionKey] };
     if (edit.hidden !== undefined) merged.hidden = edit.hidden;
     if (Object.prototype.hasOwnProperty.call(edit, "image")) merged.image = edit.image ?? null;
+    if (Object.prototype.hasOwnProperty.call(edit, "text")) {
+      const text = typeof edit.text === "string" ? sanitizeMarqueeHtml(edit.text).trim() : "";
+      if (text) merged.text = text;
+      else delete merged.text;
+    }
+    if (Object.prototype.hasOwnProperty.call(edit, "color")) {
+      if (edit.color) merged.color = edit.color;
+      else delete merged.color;
+    }
     if (merged.hidden === undefined || merged.hidden === null) delete merged.hidden;
     if (merged.image === undefined) delete merged.image;
-    sections[key as AppearanceHomeSectionKey] = merged;
+    if (Object.keys(merged).length > 0) sections[key as AppearanceHomeSectionKey] = merged;
+    else delete sections[key as AppearanceHomeSectionKey];
   }
   const controls = {
     hideLogo: next.hideLogo ?? current?.hideLogo ?? false,

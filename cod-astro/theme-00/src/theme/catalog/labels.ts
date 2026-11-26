@@ -286,10 +286,23 @@ const imageOf = (label: LocalizedText): LocalizedText => {
   const { ar, fr, en } = partsOf(label);
   return { ar: `صورة ${ar}`, fr: `Image ${fr}`, en: `${en} image` };
 };
+const marqueeTextOf = (label: LocalizedText): LocalizedText => {
+  const { ar, fr, en } = partsOf(label);
+  return { ar: `نص ${ar}`, fr: `Texte ${fr}`, en: `${en} text` };
+};
+const marqueeColorOf = (label: LocalizedText): LocalizedText => {
+  const { ar, fr, en } = partsOf(label);
+  return { ar: `لون ${ar}`, fr: `Couleur ${fr}`, en: `${en} color` };
+};
 
 export const HOME_SETTING = {
   hero: { hidden: hideOf(SECTION.hero), image: imageOf(SECTION.hero) },
-  marquee: { hidden: hideOf(SECTION.marquee), image: imageOf(SECTION.marquee) },
+  marquee: {
+    hidden: hideOf(SECTION.marquee),
+    image: imageOf(SECTION.marquee),
+    text: marqueeTextOf(SECTION.marquee),
+    color: marqueeColorOf(SECTION.marquee),
+  },
   "category-cards": { hidden: hideOf(SECTION.categoryCards), image: imageOf(SECTION.categoryCards) },
   "product-tabs": { hidden: hideOf(SECTION.productTabs), image: imageOf(SECTION.productTabs) },
   "image-banner": { hidden: hideOf(SECTION.imageBanner), image: imageOf(SECTION.imageBanner) },
