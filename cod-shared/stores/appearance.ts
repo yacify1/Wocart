@@ -93,11 +93,12 @@ export interface AppearanceSectionEdit {
 export type AppearanceSectionEdits = Partial<Record<AppearanceHomeSectionKey, AppearanceSectionEdit>>;
 
 export type AppearanceSchemeName = string | Record<string, string>;
+export type AppearanceSchemeColors = Partial<Record<AppearanceColorRole, string | null>>;
 
 export interface AppearanceColorScheme {
   id: string;
   name: AppearanceSchemeName;
-  colors: Record<AppearanceColorRole, string>;
+  colors: AppearanceSchemeColors;
 }
 
 export interface AppearanceSettings {
@@ -149,6 +150,33 @@ export const APPEARANCE_DEFAULT_SCHEMES: AppearanceColorScheme[] = [
     colors: { background: "#f3f2e7", text: "#343a29", heading: "#1f2716", accent: "#66763b", button: "#4b5b2c", buttonText: "#ffffff", border: "#d6d9bd" },
   },
 ];
+
+export function autoSchemeColor(id: string, role: AppearanceColorRole): string {
+  const base = APPEARANCE_DEFAULT_SCHEMES.find((scheme) => scheme.id === id) ?? APPEARANCE_DEFAULT_SCHEMES[0]!;
+  return base.colors[role] ?? "#ffffff";
+}
+
+export function effectiveSchemeColor(
+  scheme: Pick<AppearanceColorScheme, "id" | "colors"> | undefined,
+  role: AppearanceColorRole,
+): string {
+  return scheme?.colors[role] ?? autoSchemeColor(scheme?.id ?? APPEARANCE_DEFAULT_SCHEMES[0]!.id, role);
+}
+
+export function effectiveSchemeColors(
+  scheme: Pick<AppearanceColorScheme, "id" | "colors"> | undefined,
+): Record<AppearanceColorRole, string> {
+  return Object.fromEntries(
+    APPEARANCE_COLOR_ROLES.map((role) => [role, effectiveSchemeColor(scheme, role)]),
+  ) as Record<AppearanceColorRole, string>;
+}
+
+function normalizedSchemeColors(value: unknown): AppearanceSchemeColors {
+  const colors = (isRecord(value) ? value : {}) as AppearanceSchemeColors;
+  return Object.fromEntries(
+    APPEARANCE_COLOR_ROLES.map((role) => [role, colors[role] ?? null]),
+  ) as AppearanceSchemeColors;
+}
 
 export const APPEARANCE_HEADER_HTML_MAX = 2000;
 export const APPEARANCE_MARQUEE_TEXT_MAX = 500;
@@ -406,8 +434,16 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
       sections["image-banner"] = { ...sections["image-banner"], hidden: true };
     }
   }
+  const savedSchemes = stored.colorSchemes;
+  const colorSchemes =
+    colorSchemesProblem(savedSchemes) === null
+      ? (savedSchemes as AppearanceColorScheme[]).map((scheme) => ({
+          ...scheme,
+          colors: normalizedSchemeColors(scheme.colors),
+        }))
+      : savedSchemes;
   const candidate = {
-    colorSchemes: stored.colorSchemes,
+    colorSchemes,
     pageScheme: stored.pageScheme,
     hideLogo: stored.hideLogo ?? false,
     hideHeaderText: stored.hideHeaderText ?? false,
@@ -450,7 +486,7 @@ export function colorSchemesProblem(value: unknown): string | null {
     if (!isRecord(scheme.colors)) return `scheme "${scheme.id}" needs colors`;
     for (const role of APPEARANCE_COLOR_ROLES) {
       const color = scheme.colors[role];
-      if (typeof color !== "string" || !APPEARANCE_HEX.test(color)) {
+      if (color !== undefined && color !== null && (typeof color !== "string" || !APPEARANCE_HEX.test(color))) {
         return `scheme "${scheme.id}" needs a hex color for "${role}"`;
       }
     }
@@ -544,10 +580,18 @@ export function mergeAppearance(
       return { error: `The store's color scheme "${scheme.id}" is missing` };
     }
   }
-  const merged = current.colorSchemes.map((scheme) => ({
-    ...scheme,
-    colors: byId.get(scheme.id)!.colors,
-  }));
+  const merged = current.colorSchemes.map((scheme) => {
+    const incoming = byId.get(scheme.id)!.colors;
+    return {
+      ...scheme,
+      colors: Object.fromEntries(
+        APPEARANCE_COLOR_ROLES.map((role) => {
+          const color = incoming[role];
+          return [role, color === undefined ? scheme.colors[role] ?? null : color ?? null];
+        }),
+      ) as AppearanceSchemeColors,
+    };
+  });
   if (!merged.some((scheme) => scheme.id === next.pageScheme)) {
     return { error: `pageScheme names "${next.pageScheme}", which the store does not have` };
   }

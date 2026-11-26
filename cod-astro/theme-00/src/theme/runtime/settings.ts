@@ -8,7 +8,7 @@
  * through the catalog would make its own component reference circular.
  */
 import { resolveThemeSettings, type InferSettings, type ThemeDefinition } from "@wocart/theme";
-import { THEME_STYLE } from "@/theme/appearance";
+import { THEME_STYLE, withResolvedSchemeColors } from "@/theme/appearance";
 import { THEME_KEY } from "@/theme/key";
 import { THEME_SETTINGS } from "@/theme/settings";
 import type { shellCatalog } from "@/theme/catalog/families/shell";
@@ -22,7 +22,7 @@ const resolved = new WeakMap<StoreContext, ThemeSettings>();
 export function settingsOf(store: StoreContext): ThemeSettings {
   let values = resolved.get(store);
   if (values === undefined) {
-    values = resolveThemeSettings(declaration, store.config.themeSettings, {
+    values = resolveThemeSettings(declaration, withResolvedSchemeColors(store.config.themeSettings), {
       content: store.content,
       locales: [store.locale, ...store.fallbackLocales],
     }).values as ThemeSettings;

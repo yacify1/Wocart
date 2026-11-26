@@ -56,17 +56,19 @@ const jsonContent = <T extends z.ZodType>(schema: T) => ({
   "application/json": { schema },
 });
 
+const schemeColor = z.string().regex(APPEARANCE_HEX).nullable().optional();
+
 const colorSchemeSchema = z.object({
   id: z.string().regex(APPEARANCE_SCHEME_ID),
   name: z.union([z.string().min(1), z.record(z.string(), z.string())]),
   colors: z.object({
-    background: z.string().regex(APPEARANCE_HEX),
-    text: z.string().regex(APPEARANCE_HEX),
-    heading: z.string().regex(APPEARANCE_HEX),
-    accent: z.string().regex(APPEARANCE_HEX),
-    button: z.string().regex(APPEARANCE_HEX),
-    buttonText: z.string().regex(APPEARANCE_HEX),
-    border: z.string().regex(APPEARANCE_HEX),
+    background: schemeColor,
+    text: schemeColor,
+    heading: schemeColor,
+    accent: schemeColor,
+    button: schemeColor,
+    buttonText: schemeColor,
+    border: schemeColor,
   }),
 });
 

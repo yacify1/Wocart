@@ -82,14 +82,22 @@ const focus = own?.position ?? "50% 55%";
     .hero-copy {
       justify-content: center;
       padding-block: 4rem;
-      padding-inline: max(2.5rem, calc((100vw - 85rem) / 2 + 2.5rem)) 4rem;
+      padding-inline: 4rem;
     }
-    .photo-start .hero-copy { padding-inline: 4rem max(2.5rem, calc((100vw - 85rem) / 2 + 2.5rem)); }
+    .has-photo .hero-copy { padding-inline: max(2.5rem, calc((100vw - 85rem) / 2 + 2.5rem)) 4rem; }
+    .has-photo.photo-start .hero-copy { padding-inline: 4rem max(2.5rem, calc((100vw - 85rem) / 2 + 2.5rem)); }
     .hero-title { font-size: var(--text-6xl); line-height: 1.22; }
     .hero-sub { margin-top: 1.125rem; font-size: var(--text-lg); }
     .hero-actions { margin-top: 2.25rem; }
     .hero-actions > a { flex: none; min-width: 11.25rem; }
-    .no-photo .hero-copy { padding-block: 7rem; }
+    .no-photo .hero-copy {
+      width: min(100%, 48rem);
+      margin-inline: auto;
+      padding-block: 7rem;
+      padding-inline: 1.5rem;
+    }
+    .no-photo .hero-title { font-size: var(--text-5xl); }
+    .no-photo .hero-actions { flex-wrap: wrap; }
   }
   @media (prefers-reduced-motion: no-preference) {
     .hero-title, .hero-sub, .hero-actions { animation: hero-rise 0.9s var(--ease-out-expo) both; }

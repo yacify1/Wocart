@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { checkThemeSettings, contrastRatio, themeStyleSheet } from "@wocart/theme";
 import themeFonts from "@/theme/fonts.json";
 import styleSizes from "@/theme/style-sizes.json";
-import { BODY_FONT, CORNERS, DEFAULT_SCHEMES, HEADING_FONT, SCHEME_OF, cardAspect, cornerRadii, detailColorStyles, schemeBackground, themeFont } from "@/theme/appearance";
+import { BODY_FONT, CORNERS, DEFAULT_SCHEMES, HEADING_FONT, SCHEME_OF, cardAspect, cornerRadii, detailColorStyles, schemeBackground, themeFont, withResolvedSchemeColors } from "@/theme/appearance";
 import { theme00 } from "@/theme/theme";
 
 const rem = (value: string) => (value === "0" ? 0 : Number.parseFloat(value));
@@ -41,6 +41,22 @@ describe("the default color schemes", () => {
     expect(schemeBackground(DEFAULT_SCHEMES, SCHEME_OF.olive)).toBe("#f3f2e7");
     expect(schemeBackground(DEFAULT_SCHEMES, "gone")).toBe("#ffffff");
     expect(schemeBackground(undefined, "scheme-1")).toBe("#ffffff");
+  });
+});
+
+describe("auto scheme colors", () => {
+  it("fill null roles from the scheme the store actually wears, keeping picked colors", () => {
+    const olive = DEFAULT_SCHEMES[5]!;
+    const settings = {
+      colorSchemes: [
+        { ...olive, colors: { ...olive.colors, accent: null, background: "#abcdef" } },
+      ],
+      pageScheme: olive.id,
+    };
+    const resolved = withResolvedSchemeColors(settings) as { colorSchemes: { colors: Record<string, string> }[] };
+    expect(resolved.colorSchemes[0]!.colors.accent).toBe(olive.colors.accent);
+    expect(resolved.colorSchemes[0]!.colors.background).toBe("#abcdef");
+    expect(checkThemeSettings(theme00, resolved)).toEqual([]);
   });
 });
 

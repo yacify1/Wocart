@@ -2,7 +2,7 @@ import { bindEach } from "@wocart/theme/lifecycle";
 
 const ICON_MAX = 128;
 
-bindEach<HTMLImageElement>("[data-category-photo]", (image) => {
+bindEach<HTMLImageElement>("[data-category-icon='auto']", (image) => {
   const apply = () => {
     const small =
       image.complete &&

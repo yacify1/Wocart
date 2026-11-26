@@ -205,6 +205,20 @@ describe("the storefront config", () => {
     expect(config!.themeSettings).toEqual({ colorSchemes: palette, pageScheme: "scheme-1" });
   });
 
+  it("carries an Auto scheme role through the flat row for the theme to resolve", async () => {
+    const id = await seedStore();
+    const palette = [
+      { ...scheme(0), colors: { ...scheme(0).colors, button: null } as Record<string, unknown> },
+    ];
+    await saveThemeSettings(db, id, "theme-00", { colorSchemes: palette, pageScheme: "scheme-1" });
+
+    const config = await getStoreConfig(db, id, TEST_DELIVERY, { theme: "theme-00" });
+    expect(config!.themeSettings).toEqual({ colorSchemes: palette, pageScheme: "scheme-1" });
+    expect(
+      appearanceThemeSettingsOf(await getThemeSettings(db, id, "theme-00"))?.colorSchemes[0]?.colors.button,
+    ).toBeNull();
+  });
+
   it("carries the storefront switches, logo alignment and safe header strip the editor saved", async () => {
     const id = await seedStore();
     await saveThemeSettings(db, id, "theme-00", {

@@ -144,6 +144,38 @@ describe("AppearanceSettings", () => {
     expect(background.value).toBe("#123456");
   });
 
+  it("saves an Auto scheme role as null while showing the color its scheme supplies", async () => {
+    await render();
+    const auto = [...host.querySelectorAll<HTMLButtonElement>("button")].find((node) =>
+      node.getAttribute("aria-label")?.startsWith("store.appearance_color_background store.appearance_color_auto"),
+    )!;
+    await click(auto);
+
+    const input = host.querySelector<HTMLInputElement>('input[aria-label="store.appearance_color_background hex"]')!;
+    expect(input.value).toBe("#ffffff");
+    expect(auto.disabled).toBe(true);
+
+    await click(saveButton(section("store.appearance_colors_title")));
+    expect(seam.calls[0]!.colorSchemes[0].colors.background).toBeNull();
+  });
+
+  it("keeps Auto on the scheme it follows when the store opens on another palette", async () => {
+    const schemes = JSON.parse(JSON.stringify(APPEARANCE_DEFAULT_SCHEMES));
+    schemes.find((scheme: { id: string }) => scheme.id === "scheme-6").colors.accent = null;
+    seam.appearance = { ...appearance(), colorSchemes: schemes, pageScheme: "scheme-6" };
+    await render();
+
+    const olive = [...host.querySelectorAll("button")].find(
+      (node) => node.hasAttribute("aria-pressed") && node.textContent?.includes("Olive"),
+    )!;
+    await click(olive);
+    const accent = host.querySelector<HTMLInputElement>('input[aria-label="store.appearance_color_accent hex"]')!;
+    expect(accent.value).toBe("#66763b");
+
+    await click(saveButton(section("store.appearance_colors_title")));
+    expect(seam.calls[0]!.colorSchemes.find((scheme: { id: string }) => scheme.id === "scheme-6").colors.accent).toBeNull();
+  });
+
   it("opens on the palette the live sections wear, not only the page", async () => {
     seam.appearance = { ...appearance(), pageScheme: "scheme-6" };
     await render();

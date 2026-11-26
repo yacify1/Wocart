@@ -136,6 +136,7 @@ describe("category photos", () => {
   it("loads the icon binding where category tiles render", () => {
     const source = read(join(SRC_DIR, "theme/components/home/CategoryCards.astro"));
     expect(scriptsOf(source).has("category-icons")).toBe(true);
+    expect(read(join(SRC_DIR, "theme/scripts/category-icons.ts"))).toContain("[data-category-icon='auto']");
   });
 });
 

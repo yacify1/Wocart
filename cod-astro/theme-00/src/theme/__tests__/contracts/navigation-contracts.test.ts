@@ -227,6 +227,16 @@ describe("the layout", () => {
     expect(html).not.toContain("#123456");
   });
 
+  it("lets an Auto scheme role follow the shipped color of that scheme, not another one's", async () => {
+    const schemes = [
+      { ...DEFAULT_SCHEMES[1], colors: { ...DEFAULT_SCHEMES[1].colors, button: null } as Record<string, unknown> },
+    ];
+    const html = await render({}, { colorSchemes: schemes, pageScheme: "scheme-2" });
+    expect(html).toContain(".wc-scheme-scheme-2{");
+    expect(html).toContain("--wc-color-button:#0f1626");
+    expect(html).toContain("--wc-color-background:#f4f4f1");
+  });
+
   it("asks for no menu and no area on a page that leaves out the header and footer", async () => {
     const asked: string[] = [];
     const client = { menus: { get: async (handle: string) => (asked.push(handle), null) }, pageData: { get: async (surface: string) => (asked.push(surface), null) } };

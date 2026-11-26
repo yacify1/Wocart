@@ -52,6 +52,33 @@ export const DEFAULT_SCHEMES = [
 
 export type SchemeId = (typeof DEFAULT_SCHEMES)[number]["id"];
 
+export function withResolvedSchemeColors(
+  settings: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  const schemes = settings?.colorSchemes;
+  if (!Array.isArray(schemes)) return settings;
+  const hex = /^#[0-9a-f]{6}$/i;
+  return {
+    ...settings,
+    colorSchemes: schemes.map((scheme) => {
+      if (typeof scheme !== "object" || scheme === null) return scheme;
+      const id = "id" in scheme && typeof scheme.id === "string" ? scheme.id : "";
+      const base = DEFAULT_SCHEMES.find((candidate) => candidate.id === id) ?? DEFAULT_SCHEMES[0]!;
+      const raw =
+        "colors" in scheme && typeof scheme.colors === "object" && scheme.colors !== null
+          ? (scheme.colors as Record<string, unknown>)
+          : {};
+      const colors = Object.fromEntries(
+        Object.entries(base.colors).map(([role, fallback]) => {
+          const picked = raw[role];
+          return [role, typeof picked === "string" && hex.test(picked) ? picked.toLowerCase() : fallback];
+        }),
+      );
+      return { ...scheme, colors };
+    }),
+  };
+}
+
 /** The default schemes by role, for the theme's own defaults. */
 export const SCHEME_OF = { light: "scheme-1", stone: "scheme-2", sand: "scheme-3", saffron: "scheme-4", night: "scheme-5", olive: "scheme-6" } as const satisfies Record<string, SchemeId>;
 

@@ -5,6 +5,8 @@
  * a saved value takes effect, an absent one keeps the shipped behavior, and a
  * hostile value never reaches the markup.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Category, ProductList } from "@wocart/storefront";
 import type { RendererIssue } from "@wocart/theme/astro";
@@ -121,6 +123,15 @@ describe("per-section visibility and photos", () => {
     });
     expect(superseded).toContain("hero-photo");
   });
+
+  it("centers a hero without a photo instead of keeping the two-column gutter", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/theme/components/home/Hero.astro"), "utf8");
+    const desktop = source.slice(source.indexOf("@media (min-width: 1024px)"));
+    expect(desktop).toContain(".has-photo .hero-copy { padding-inline:");
+    expect(desktop).toContain(".has-photo.photo-start .hero-copy { padding-inline:");
+    expect(desktop).toMatch(/\.no-photo \.hero-copy \{[^}]*margin-inline: auto;/);
+    expect(desktop).toMatch(/\.no-photo \.hero-copy \{[^}]*padding-inline: 1\.5rem;/);
+  });
 });
 
 describe("scrolling text controls", () => {
@@ -193,12 +204,14 @@ describe("how many items a section shows", () => {
   it("category cards shows 4 by default and the saved limit otherwise", async () => {
     const shipped = await renderSections([{ id: "c", type: "category-cards" }], storefront);
     expect(countOf(shipped, 'href="/category/')).toBe(4);
+    expect(shipped).toContain("--tiles: 5");
 
     const limited = await renderSections(
       [{ id: "c", type: "category-cards", props: { limit: 2 } }],
       storefront,
     );
     expect(countOf(limited, 'href="/category/')).toBe(2);
+    expect(limited).toContain("--tiles: 3");
   });
 
   it("an out-of-range limit is reported and the default applies", async () => {
@@ -238,6 +251,7 @@ describe("category photos", () => {
     expect(html).toContain("is-icon");
     expect(photo).toContain('width="48"');
     expect(photo).toContain('height="48"');
+    expect(photo).not.toContain('data-category-icon="auto"');
     expect(html).not.toContain("18vw, 62vw");
   });
 
@@ -247,6 +261,7 @@ describe("category photos", () => {
     expect(photo).toContain("/cdn-cgi/image/");
     expect(photo).toContain("fit=scale-down");
     expect(photo).toContain("18vw, 62vw");
+    expect(photo).toContain('data-category-icon="auto"');
     expect(photo).not.toContain('width="600"');
     expect(photo).not.toContain("fit=cover");
   });
@@ -257,6 +272,16 @@ describe("category photos", () => {
     expect(html).not.toContain("is-icon");
     expect(photo).toContain('width="600"');
     expect(photo).toContain('height="750"');
+    expect(photo).not.toContain('data-category-icon="auto"');
     expect(html).toContain("18vw, 62vw");
+  });
+
+  it("caps a short row so its tiles stay proportional instead of filling the frame", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/theme/components/home/CategoryCards.astro"), "utf8");
+    expect(source).toContain("--tile-max: 16rem;");
+    expect(source).toContain(".category-tiles > li { width: 100%; max-width: var(--tile-max); justify-self: center; }");
+    expect(source).toContain(
+      "width: min(100%, calc(var(--tiles) * var(--tile-max) + (var(--tiles) - 1) * var(--tile-gap)));",
+    );
   });
 });

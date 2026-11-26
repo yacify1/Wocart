@@ -40,6 +40,16 @@ describe("colorSchemesProblem", () => {
     expect(colorSchemesProblem(null)).toMatch(/non-empty/);
   });
 
+  it("accepts Auto roles and still rejects a color that is not a hex", () => {
+    const schemes = clone(APPEARANCE_DEFAULT_SCHEMES);
+    schemes[0]!.colors.background = null;
+    delete schemes[1]!.colors.text;
+    expect(colorSchemesProblem(schemes)).toBeNull();
+
+    schemes[0]!.colors.button = "red";
+    expect(colorSchemesProblem(schemes)).toMatch(/hex color for "button"/);
+  });
+
   it("rejects a color that is not a six-digit hex", () => {
     const schemes = clone(APPEARANCE_DEFAULT_SCHEMES);
     schemes[0]!.colors.button = "red";
@@ -91,6 +101,19 @@ describe("mergeAppearance", () => {
     expect(mergeAppearance(null, next)).toEqual({ settings: next });
   });
 
+  it("merges colors role by role so Auto survives a save that omits other roles", () => {
+    const current = valid();
+    const next = valid();
+    next.colorSchemes[0]!.colors = { background: null };
+
+    const merged = mergeAppearance(current, next);
+    expect(merged.error).toBeUndefined();
+    expect(merged.settings!.colorSchemes[0]!.colors).toEqual({
+      ...current.colorSchemes[0]!.colors,
+      background: null,
+    });
+  });
+
   it("changes colors while keeping the store's ids, names and order", () => {
     const current = valid();
     const next = valid();
@@ -139,6 +162,16 @@ describe("appearanceSettingsOf", () => {
     expect(appearanceSettingsOf({})).toBeNull();
     expect(appearanceSettingsOf({ pageScheme: "scheme-1" })).toBeNull();
     expect(appearanceSettingsOf(null)).toBeNull();
+  });
+
+  it("reads missing and null roles as Auto, never as an undefined color", () => {
+    const stored = valid();
+    stored.colorSchemes[0]!.colors.background = null;
+    delete stored.colorSchemes[1]!.colors.text;
+
+    const read = appearanceSettingsOf({ ...stored })!;
+    expect(read.colorSchemes[0]!.colors.background).toBeNull();
+    expect(read.colorSchemes[1]!.colors.text).toBeNull();
   });
 
   it("ignores the other keys a theme's settings row carries", () => {

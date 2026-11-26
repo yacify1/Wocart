@@ -88,6 +88,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   restores every palette and detail color instead of leaving old test colors
   behind. Category uploads whose size the catalog does not know fill their tile
   proportionally instead of being enlarged to a guessed crop.
+- Every Appearance color field has Auto. An Auto scheme role follows the
+  theme's shipped color for that scheme, so detail, marquee, preview, page and
+  section colors keep one source of truth instead of stale picked values.
+- A hero without a photo centers its words and buttons across the section
+  instead of keeping the one-sided gutter of the two-column photo layout.
+- Category tile rows are capped and centered, and the browser only decides
+  icon sizing for photos whose size the catalog does not know; measured WebP
+  icons and uploaded photos keep their stored proportions.
 - WebP uploads from a browser that reports no MIME type keep `image/webp` on
   the form part the media host receives. The dashboard derives the type from
   the file's extension and sends a matching blob, so ImageKit cannot reject a

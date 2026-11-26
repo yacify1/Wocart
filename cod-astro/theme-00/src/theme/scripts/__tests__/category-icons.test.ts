@@ -9,11 +9,11 @@ beforeEach(() => {
   document.body.innerHTML = "";
 });
 
-function addPhoto(width: number, height: number, complete = true) {
+function addPhoto(width: number, height: number, complete = true, auto = true) {
   const tile = document.createElement("a");
   tile.className = "category-tile";
   const photo = document.createElement("img");
-  photo.setAttribute("data-category-photo", "");
+  if (auto) photo.setAttribute("data-category-icon", "auto");
   Object.defineProperty(photo, "complete", { value: complete, configurable: true });
   Object.defineProperty(photo, "naturalWidth", { value: width, configurable: true });
   Object.defineProperty(photo, "naturalHeight", { value: height, configurable: true });
@@ -35,6 +35,15 @@ describe("category icons", () => {
     const { tile } = addPhoto(600, 750);
     settle();
     expect(tile.classList.contains("is-icon")).toBe(false);
+  });
+
+  it("leaves measured photos to the server, including its icon decision", () => {
+    const { tile: small } = addPhoto(48, 48, true, false);
+    const { tile: serverIcon } = addPhoto(600, 750, true, false);
+    serverIcon.classList.add("is-icon");
+    settle();
+    expect(small.classList.contains("is-icon")).toBe(false);
+    expect(serverIcon.classList.contains("is-icon")).toBe(true);
   });
 
   it("decides again once a photo without dimensions loads", () => {

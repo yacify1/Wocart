@@ -17,6 +17,8 @@ import {
   APPEARANCE_TEXT_KEYS,
   APPEARANCE_TEXT_LIMITS,
   APPEARANCE_HEX,
+  effectiveSchemeColor,
+  effectiveSchemeColors,
   type AppearanceColorRole,
   type AppearanceColorScheme,
   type AppearanceDetailColorKey,
@@ -67,22 +69,17 @@ function mixHex(from: string, to: string, weight: number): string {
 }
 
 function autoDetailColor(key: AppearanceDetailColorKey, scheme: AppearanceColorScheme | undefined): string {
-  const colors = scheme?.colors;
-  if (key === "secondaryButton") return colors?.heading ?? "#0f1626";
+  if (key === "secondaryButton") return effectiveSchemeColor(scheme, "heading");
   if (key === "oldPrice") {
-    const text = colors?.text ?? "#3b4250";
-    const background = colors?.background ?? "#ffffff";
-    return mixHex(text, background, 0.74);
+    return mixHex(effectiveSchemeColor(scheme, "text"), effectiveSchemeColor(scheme, "background"), 0.74);
   }
-  if (key === "newPrice") return colors?.accent ?? "#c8102e";
+  if (key === "newPrice") return effectiveSchemeColor(scheme, "accent");
   return "#f2c14e";
 }
 
 export function autoDetailSwatch(key: AppearanceDetailColorKey, scheme: AppearanceColorScheme | undefined): string {
   if (key === "oldPrice") {
-    const text = scheme?.colors.text ?? "#3b4250";
-    const background = scheme?.colors.background ?? "#ffffff";
-    return `color-mix(in oklab, ${text} 74%, ${background})`;
+    return `color-mix(in oklab, ${effectiveSchemeColor(scheme, "text")} 74%, ${effectiveSchemeColor(scheme, "background")})`;
   }
   return autoDetailColor(key, scheme);
 }
@@ -95,7 +92,7 @@ const LOOKS = [
   { id: "scheme-5", labelKey: "store.appearance_look_midnight" },
 ].map((look) => ({
   ...look,
-  colors: APPEARANCE_DEFAULT_SCHEMES.find((scheme) => scheme.id === look.id)!.colors,
+  colors: effectiveSchemeColors(APPEARANCE_DEFAULT_SCHEMES.find((scheme) => scheme.id === look.id)!),
 }));
 
 /** A scheme's name is a plain string, or the same name in several languages. */
@@ -153,8 +150,11 @@ function sectionEdits(sections: StoreAppearance["sections"]): AppearanceSectionE
   ) as AppearanceSectionEdits;
 }
 
-function sameColors(left: AppearanceColorScheme["colors"], right: AppearanceColorScheme["colors"]): boolean {
-  return APPEARANCE_COLOR_ROLES.every((role) => left[role] === right[role]);
+function sameColors(
+  scheme: AppearanceColorScheme | undefined,
+  colors: Record<AppearanceColorRole, string>,
+): boolean {
+  return APPEARANCE_COLOR_ROLES.every((role) => effectiveSchemeColor(scheme, role) === colors[role]);
 }
 
 function ColorField({
@@ -257,7 +257,7 @@ function AppearancePreview({
 }) {
   const t = useT("settings");
   if (!scheme) return null;
-  const colors = scheme.colors;
+  const colors = effectiveSchemeColors(scheme);
   const secondary = detailColors.secondaryButton ?? autoDetailSwatch("secondaryButton", scheme);
   const oldPrice = detailColors.oldPrice ?? autoDetailSwatch("oldPrice", scheme);
   const newPrice = detailColors.newPrice ?? autoDetailSwatch("newPrice", scheme);
@@ -414,7 +414,7 @@ export function AppearanceSettings() {
   const current = schemes.find((scheme) => scheme.id === selected) ?? schemes[0];
   const localeDrafts = drafts[textLocale] ?? {};
 
-  function updateColor(role: AppearanceColorRole, value: string) {
+  function updateColor(role: AppearanceColorRole, value: string | null) {
     if (!current) return;
     setSchemes((list) =>
       list.map((scheme) =>
@@ -504,7 +504,7 @@ export function AppearanceSettings() {
             {LOOKS.map((look) => {
               const scheme = schemes[0];
               if (!scheme) return null;
-              const active = pageScheme === look.id && sameColors(scheme.colors, look.colors);
+              const active = pageScheme === look.id && sameColors(scheme, look.colors);
               return (
                 <button
                   key={look.id}
@@ -548,9 +548,15 @@ export function AppearanceSettings() {
                   >
                     <span
                       className="grid size-7 shrink-0 place-items-center rounded-md border"
-                      style={{ background: scheme.colors.background, borderColor: scheme.colors.border }}
+                      style={{
+                        background: effectiveSchemeColor(scheme, "background"),
+                        borderColor: effectiveSchemeColor(scheme, "border"),
+                      }}
                     >
-                      <span className="size-2.5 rounded-full" style={{ background: scheme.colors.button }} />
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ background: effectiveSchemeColor(scheme, "button") }}
+                      />
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                       {schemeName(scheme.name, locale)}
@@ -580,14 +586,22 @@ export function AppearanceSettings() {
 
           <div className="space-y-4">
             <div className="grid gap-2.5 xl:grid-cols-2">
-              {APPEARANCE_COLOR_ROLES.map((role) => (
-                <ColorField
-                  key={role}
-                  label={t(COLOR_LABEL_KEYS[role])}
-                  value={current?.colors[role] ?? "#ffffff"}
-                  onChange={(value) => updateColor(role, value)}
-                />
-              ))}
+              {APPEARANCE_COLOR_ROLES.map((role) => {
+                const auto = current?.colors[role] == null;
+                const color = effectiveSchemeColor(current, role);
+                return (
+                  <ColorField
+                    key={role}
+                    label={t(COLOR_LABEL_KEYS[role])}
+                    value={color}
+                    swatch={color}
+                    isAuto={auto}
+                    autoLabel={t("store.appearance_color_auto")}
+                    onClear={() => updateColor(role, null)}
+                    onChange={(value) => updateColor(role, value)}
+                  />
+                );
+              })}
             </div>
             <div className="space-y-2 border-t border-border pt-4">
               <div>
@@ -744,8 +758,8 @@ export function AppearanceSettings() {
                     </Field>
                     <ColorField
                       label={t("store.appearance_section_marquee_color")}
-                      value={section?.color ?? current?.colors.heading ?? "#0f1626"}
-                      swatch={current?.colors.heading}
+                      value={section?.color ?? effectiveSchemeColor(current, "heading")}
+                      swatch={effectiveSchemeColor(current, "heading")}
                       isAuto={!section?.color}
                       autoLabel={t("store.appearance_color_auto")}
                       onClear={() => updateSection(key, { color: null })}
