@@ -2,14 +2,11 @@ import { defineComponent } from "@wocart/theme";
 import { FIELD, GROUP, OPTION, SECTION } from "../labels";
 import Hero from "@/theme/components/home/Hero.astro";
 import { SCHEME_OF } from "@/theme/appearance";
-import { collectionRead, copyOverrides, schemeField, styleField } from "../shared";
-
-/** A few products are read so the first one with a photo, in stock, can lead. */
-const HERO_READ = 6;
+import { copyOverrides, schemeField, styleField } from "../shared";
 
 /**
- * The page's first view: a large photo — the merchant's own, else the first
- * product of a collection — beside the store's promise and two actions.
+ * The page's first view: a large photo — the merchant's or the editor's — beside
+ * the store's promise and two actions. Without one, the promise stands alone.
  */
 export const hero = defineComponent({
   type: "hero",
@@ -26,7 +23,6 @@ export const hero = defineComponent({
     { key: "heroCtaSecondary", kind: "text", label: FIELD.secondaryButton, contentKey: "heroCtaSecondary" },
     { key: "ctaSecondaryHref", kind: "url", label: FIELD.secondaryButtonLink, default: "#best-sellers" },
     { key: "image", kind: "image", label: FIELD.photo },
-    { key: "collection", kind: "collection", label: FIELD.photoFallback, default: "featured" },
     {
       key: "photoSide",
       kind: "select",
@@ -39,14 +35,5 @@ export const hero = defineComponent({
     schemeField(SCHEME_OF.sand),
     styleField({ size: { width: { base: "full" } } }),
   ],
-  load: async ({ storefront, reads, context, props }) => {
-    const products = props.image
-      ? []
-      : await reads.get(collectionRead(props.collection, HERO_READ), () => storefront.products.list({ collection: props.collection, limit: HERO_READ }));
-    const lead = products.find((product) => product.coverImage && product.inventory !== 0) ?? products.find((product) => product.coverImage) ?? null;
-    return {
-      lead: lead ? { src: lead.coverImage!.url, alt: lead.coverImage!.altText ?? lead.name } : null,
-      content: copyOverrides(context.content, props),
-    };
-  },
+  load: async ({ context, props }) => ({ content: copyOverrides(context.content, props) }),
 });

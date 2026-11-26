@@ -9,6 +9,7 @@ const seam = vi.hoisted(() => ({
   appearance: null as null | Record<string, any>,
   calls: [] as Array<Record<string, any>>,
   response: null as null | Record<string, any>,
+  saveImpl: null as null | ((payload: Record<string, any>) => Promise<Record<string, any>>),
   upload: vi.fn(),
 }));
 
@@ -16,6 +17,7 @@ vi.mock("@/features/settings/api", () => ({
   getAppearance: async () => seam.appearance,
   saveAppearance: async (payload: Record<string, any>) => {
     seam.calls.push(payload);
+    if (seam.saveImpl) return seam.saveImpl(payload);
     if (seam.response) return seam.response;
     const next = { ...seam.appearance!, ...payload };
     if (payload.sections) {
@@ -82,6 +84,7 @@ beforeEach(() => {
   seam.appearance = appearance();
   seam.calls = [];
   seam.response = null;
+  seam.saveImpl = null;
   seam.upload.mockReset();
   seam.upload.mockResolvedValue({
     key: "products/hero.webp",
@@ -454,5 +457,51 @@ describe("AppearanceSettings", () => {
 
     await click(saveButton(section("store.appearance_sections_title")));
     expect(seam.calls.at(-1)!.sections.hero.image).toBeNull();
+  });
+
+  it("never crashes when a save answer omits texts", async () => {
+    await render();
+    await uploadHero();
+    seam.response = { ...appearance(), texts: undefined };
+
+    await click(saveButton(section("store.appearance_texts_title")));
+    await settle();
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
+  });
+
+  it("never crashes when a save answer has a malformed scheme", async () => {
+    await render();
+    await uploadHero();
+    seam.response = { ...appearance(), colorSchemes: [null] };
+
+    await click(saveButton(section("store.appearance_colors_title")));
+    await settle();
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
+  });
+
+  it("keeps a hero upload made while a sections save is in flight", async () => {
+    await render();
+    let resolveSave!: (value: Record<string, any>) => void;
+    seam.saveImpl = () => new Promise((resolve) => { resolveSave = resolve; });
+
+    await click(saveButton(section("store.appearance_sections_title")));
+    await settle();
+    await uploadHero();
+    expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
+
+    await act(async () => {
+      resolveSave({
+        ...appearance(),
+        sections: { hero: { hidden: false, image: null } },
+      });
+    });
+    await settle();
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
   });
 });

@@ -307,11 +307,10 @@ describe("home adsorption — the full page", () => {
     }
 
     // The whole page reads each list once — the banner shares the tabs' sale
-    // read, the hero its photo collection — and the categories once.
+    // read — and the categories once. The hero uses only its own photo.
     expect(stub.productsList.mock.calls.map(([filters]) => (filters?.onSale ? "on-sale" : filters?.collection ?? "catalog")).sort()).toEqual([
       "best-sellers",
       "catalog",
-      "featured",
       "new-arrivals",
       "on-sale",
     ]);

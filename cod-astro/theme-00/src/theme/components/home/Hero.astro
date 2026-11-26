@@ -1,9 +1,8 @@
 ---
-// The page's first view. A large photo fills one half — the merchant's own,
-// else the first product of a collection — and the store's promise sits on
-// the other, in the section's colors: a headline, a line, two actions. On a
-// phone the photo comes first, square, the words under it. Without any photo
-// the promise stands alone, centered.
+// The page's first view. A large photo fills one half and the store's promise
+// sits on the other, in the section's colors: a headline, a line, two actions.
+// On a phone the photo comes first, square, the words under it. Without a photo
+// — including after the merchant removes one — the promise stands alone, centered.
 import { Image } from "astro:assets";
 import type { InferProps } from "@wocart/theme";
 import type { StoreFrontContent } from "@/theme/content";
@@ -14,45 +13,45 @@ import { pickedPicture } from "@/theme/utils/images";
 
 type Props = InferProps<typeof hero> & {
   content: StoreFrontContent;
-  lead: { src: string; alt: string } | null;
 };
 
-const { content, ctaPrimaryHref, ctaSecondaryHref, image, photoSide, scheme, style, lead } = Astro.props;
+const { content, ctaPrimaryHref, ctaSecondaryHref, image, photoSide, scheme, style } = Astro.props;
 const store = Astro.locals.store;
 const section = homeSectionStateOf(store, "hero");
 const own = pickedPicture(section.picked ?? image, store.config.media);
-const chosen = own ? { src: own.src, alt: own.alt } : lead;
-const photo = section.hidden ? null : chosen;
+const photo = own ? { src: own.src, alt: own.alt } : null;
 const focus = own?.position ?? "50% 55%";
 ---
 
-<Section scheme={scheme} style={style} bleed>
-  <div class:list={["hero-grid", photo ? "has-photo" : "no-photo", photoSide === "start" && "photo-start"]}>
-    {photo && (
-      <div class="hero-photo">
-        <Image
-          src={photo.src}
-          alt={photo.alt}
-          width={1200}
-          height={1200}
-          widths={[480, 736, 960, 1200, 1600]}
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          priority
-          quality={84}
-          style={`object-position: ${focus}`}
-        />
-      </div>
-    )}
-    <div class="hero-copy">
-      <h1 class="hero-title">{content.heroTitle}</h1>
-      {content.heroSubtitle && <p class="hero-sub">{content.heroSubtitle}</p>}
-      <div class="hero-actions">
-        {content.heroCtaPrimary && <a href={store.href(ctaPrimaryHref)} class="btn-primary">{content.heroCtaPrimary}</a>}
-        {content.heroCtaSecondary && <a href={store.href(ctaSecondaryHref)} class="btn-secondary">{content.heroCtaSecondary}</a>}
+{!section.hidden && (
+  <Section scheme={scheme} style={style} bleed>
+    <div class:list={["hero-grid", photo ? "has-photo" : "no-photo", photoSide === "start" && "photo-start"]}>
+      {photo && (
+        <div class="hero-photo">
+          <Image
+            src={photo.src}
+            alt={photo.alt}
+            width={1200}
+            height={1200}
+            widths={[480, 736, 960, 1200, 1600]}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            priority
+            quality={84}
+            style={`object-position: ${focus}`}
+          />
+        </div>
+      )}
+      <div class="hero-copy">
+        <h1 class="hero-title">{content.heroTitle}</h1>
+        {content.heroSubtitle && <p class="hero-sub">{content.heroSubtitle}</p>}
+        <div class="hero-actions">
+          {content.heroCtaPrimary && <a href={store.href(ctaPrimaryHref)} class="btn-primary">{content.heroCtaPrimary}</a>}
+          {content.heroCtaSecondary && <a href={store.href(ctaSecondaryHref)} class="btn-secondary">{content.heroCtaSecondary}</a>}
+        </div>
       </div>
     </div>
-  </div>
-</Section>
+  </Section>
+)}
 
 <style>
   .hero-grid { display: grid; }

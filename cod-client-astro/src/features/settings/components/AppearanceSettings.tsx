@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Layers3, Loader2, Palette, SlidersHorizontal, Type } from "lucide-react";
 import { Alert, Badge, Field, Input, Select, SwitchField, Textarea } from "@/components/ui";
 import { useLocale, useT } from "@/i18n/react";
@@ -17,6 +17,7 @@ import {
   APPEARANCE_TEXT_KEYS,
   APPEARANCE_TEXT_LIMITS,
   APPEARANCE_HEX,
+  colorSchemesProblem,
   effectiveSchemeColor,
   effectiveSchemeColors,
   type AppearanceColorRole,
@@ -175,6 +176,34 @@ function sectionsFrom(saved: StoreAppearance): StoreAppearance["sections"] {
     };
   }
   return nextSections;
+}
+
+function safeColorSchemes(value: unknown, fallback: AppearanceColorScheme[]): AppearanceColorScheme[] {
+  if (colorSchemesProblem(value) === null) return cloneSchemes(value as AppearanceColorScheme[]);
+  if (colorSchemesProblem(fallback) === null) return cloneSchemes(fallback);
+  return cloneSchemes(APPEARANCE_DEFAULT_SCHEMES);
+}
+
+function safeTexts(value: unknown): Partial<Record<StoreLocale, Record<string, string>>> {
+  if (!value || typeof value !== "object") return {};
+  const next: Partial<Record<StoreLocale, Record<string, string>>> = {};
+  for (const [code, values] of Object.entries(value as Record<string, unknown>)) {
+    if (!Object.prototype.hasOwnProperty.call(STORE_LOCALE_INFO, code)) continue;
+    if (!values || typeof values !== "object") continue;
+    const strings = Object.entries(values as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    );
+    next[code as StoreLocale] = Object.fromEntries(strings);
+  }
+  return next;
+}
+
+function safeLocales(value: unknown): StoreLocale[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (code): code is StoreLocale =>
+      typeof code === "string" && Object.prototype.hasOwnProperty.call(STORE_LOCALE_INFO, code),
+  );
 }
 
 function sameColors(
@@ -363,22 +392,31 @@ export function AppearanceSettings() {
     logoAlignment: "right" as AppearanceLogoAlignment,
   });
   const [sections, setSections] = useState<StoreAppearance["sections"]>(emptySections);
+  const sectionVersion = useRef(0);
 
   function applySaved(saved: StoreAppearance, initial = false, sectionsSaved = false) {
-    const colorSchemes =
-      Array.isArray(saved.colorSchemes) && saved.colorSchemes.length > 0 ? saved.colorSchemes : schemes;
+    const colorSchemes = safeColorSchemes(saved.colorSchemes, schemes);
+    const pageSchemeSaved =
+      typeof saved.pageScheme === "string" && colorSchemes.some((scheme) => scheme.id === saved.pageScheme)
+        ? saved.pageScheme
+        : pageScheme || colorSchemes[0]?.id || "";
     setData(saved);
-    setSchemes(cloneSchemes(colorSchemes));
-    setPageScheme(saved.pageScheme ?? pageScheme);
+    setSchemes(colorSchemes);
+    setPageScheme(pageSchemeSaved);
     setDetailColors({ ...(saved.detailColors ?? {}) });
     setSelected((id) =>
       initial || !colorSchemes.some((scheme) => scheme.id === id)
-        ? colorSchemes[0]?.id || saved.pageScheme || pageScheme || ""
+        ? colorSchemes[0]?.id || ""
         : id,
     );
     if (initial) {
-      setTextLocale(saved.primaryLocale ?? textLocale);
-      setDrafts(saved.texts ?? {});
+      setTextLocale(
+        typeof saved.primaryLocale === "string" &&
+          Object.prototype.hasOwnProperty.call(STORE_LOCALE_INFO, saved.primaryLocale)
+          ? (saved.primaryLocale as StoreLocale)
+          : textLocale,
+      );
+      setDrafts(safeTexts(saved.texts));
     }
     setControls({
       hideLogo: saved.hideLogo ?? controls.hideLogo,
@@ -431,6 +469,7 @@ export function AppearanceSettings() {
 
   const current = schemes.find((scheme) => scheme.id === selected) ?? schemes[0];
   const localeDrafts = drafts[textLocale] ?? {};
+  const localeOptions = safeLocales(data.locales);
 
   function updateColor(role: AppearanceColorRole, value: string | null) {
     if (!current) return;
@@ -455,6 +494,7 @@ export function AppearanceSettings() {
   }
 
   function updateSection(key: AppearanceHomeSectionKey, change: Partial<SectionState>) {
+    sectionVersion.current += 1;
     setSections((all) => ({ ...all, [key]: { ...all[key], ...change } }));
   }
 
@@ -476,7 +516,9 @@ export function AppearanceSettings() {
   }
 
   async function saveSections() {
-    applySaved(await saveAppearance({ sections: sectionEdits(sections) }), false, true);
+    const version = sectionVersion.current;
+    const saved = await saveAppearance({ sections: sectionEdits(sections) });
+    applySaved(saved, false, sectionVersion.current === version);
   }
 
   async function saveTexts() {
@@ -484,7 +526,8 @@ export function AppearanceSettings() {
     for (const key of APPEARANCE_TEXT_KEYS) values[key] = localeDrafts[key] ?? "";
     const saved = await saveAppearance({ texts: { locale: textLocale, values } });
     applySaved(saved);
-    setDrafts((all) => ({ ...all, [textLocale]: saved.texts[textLocale] ?? {} }));
+    const nextTexts = safeTexts(saved.texts);
+    setDrafts((all) => ({ ...all, [textLocale]: nextTexts[textLocale] ?? all[textLocale] ?? {} }));
   }
 
   function updateText(key: AppearanceTextKey, value: string) {
@@ -816,7 +859,7 @@ export function AppearanceSettings() {
             value={textLocale}
             onChange={(event) => setTextLocale(event.target.value as StoreLocale)}
           >
-            {(data.locales ?? []).map((code) => (
+            {localeOptions.map((code) => (
               <option key={code} value={code}>
                 {STORE_LOCALE_INFO[code]?.nativeName ?? code}
               </option>

@@ -110,14 +110,14 @@ describe("Product Zero — the homepage owns its data graph", () => {
     expect(countIn(sections?.content ?? "", "createReadCache(")).toBe(1);
 
     // Two sections name the catalog key — category cards and the
-    // testimonials' product lookup — five read the collection their setting
-    // names under its own key (hero, featured products, best sellers, new
-    // arrivals, a product tab), and three read the products on sale (on
-    // sale, a product tab, the promotion banner's photo), and two the
-    // categories (category cards, and a listing's category buttons). The
-    // renderer's read cache runs each loader once per render.
+    // testimonials' product lookup — four read the collection their setting
+    // names under its own key (featured products, best sellers, new arrivals,
+    // a product tab), and three read the products on sale (on sale, a product
+    // tab, the promotion banner's photo), and two the categories (category
+    // cards, and a listing's category buttons). The hero now uses only its own
+    // photo; the renderer's read cache runs each remaining loader once.
     expect(countIn(definitions, "reads.get(CATALOG_READ")).toBe(2);
-    expect(countIn(definitions, "reads.get(collectionRead(")).toBe(5);
+    expect(countIn(definitions, "reads.get(collectionRead(")).toBe(4);
     expect(countIn(definitions, "reads.get(onSaleRead(")).toBe(3);
     expect(countIn(definitions, "reads.get(CATEGORIES_READ")).toBe(2);
   });

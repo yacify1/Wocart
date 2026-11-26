@@ -89,16 +89,26 @@ describe("per-section visibility and photos", () => {
 
   it("show by default and disappear only where the store hides them", async () => {
     const shown = await renderSections(sections, storefront);
-    expect(shown).toContain("hero-photo");
+    expect(shown).toContain("hero-grid no-photo");
+    expect(shown).not.toContain("hero-photo");
     expect(shown).toContain("banner-photo");
 
     const heroHidden = await renderSections(sections, storefront, { themeSettings: { homeHeroHidden: true } });
-    expect(heroHidden).not.toContain("hero-photo");
+    expect(heroHidden).not.toMatch(/class="hero-grid/);
+    expect(heroHidden).not.toContain(en.heroTitle);
+    expect(heroHidden).not.toContain(en.heroCtaPrimary);
     expect(heroHidden).toContain("banner-photo");
 
     const bannerHidden = await renderSections(sections, storefront, { themeSettings: { homeImageBannerHidden: true } });
-    expect(bannerHidden).toContain("hero-photo");
+    expect(bannerHidden).toContain("hero-grid no-photo");
     expect(bannerHidden).not.toContain("banner-photo");
+  });
+
+  it("leaves the hero without a photo after a clear, even with products", async () => {
+    const html = await renderSections([{ id: "h", type: "hero" }], storefront);
+    expect(html).toContain("hero-grid no-photo");
+    expect(html).not.toContain("<img");
+    expect(html).toContain(en.heroTitle);
   });
 
   it("uses each section's own photo instead of the first product", async () => {
@@ -115,13 +125,14 @@ describe("per-section visibility and photos", () => {
 
   it("keeps the old grouped switch until a save clears it", async () => {
     const legacy = await renderSections(sections, storefront, { themeSettings: { hideHeroImages: true } });
-    expect(legacy).not.toContain("hero-photo");
+    expect(legacy).not.toMatch(/class="hero-grid/);
     expect(legacy).not.toContain("banner-photo");
 
     const superseded = await renderSections(sections, storefront, {
       themeSettings: { hideHeroImages: true, homeHeroHidden: false },
     });
-    expect(superseded).toContain("hero-photo");
+    expect(superseded).toContain("hero-grid no-photo");
+    expect(superseded).not.toContain("banner-photo");
   });
 
   it("centers a hero without a photo instead of keeping the two-column gutter", () => {

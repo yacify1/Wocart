@@ -86,7 +86,6 @@ export const FIELD = {
   speed: text("السرعة", "Vitesse", "Speed"),
   photo: text("الصورة", "Photo", "Photo"),
   photoSide: text("موضع الصورة على الحاسوب", "Côté de la photo sur ordinateur", "Photo side on desktop"),
-  photoFallback: text("بدون صورة: صورة أول منتج من", "Sans photo : la photo du premier produit de", "Without a photo: the first product photo of"),
   headingAlign: text("محاذاة العنوان", "Alignement du titre", "Heading alignment"),
   tabLabel: text("اسم التبويب", "Nom de l'onglet", "Tab name"),
   layout: text("طريقة العرض", "Disposition", "Layout"),
