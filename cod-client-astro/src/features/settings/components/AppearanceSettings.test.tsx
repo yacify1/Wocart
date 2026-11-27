@@ -388,7 +388,7 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[1]!.sections.marquee.color).toBeNull();
   });
 
-  it("saves the scrolling text's sparkle color next to the text color", async () => {
+  it("saves the scrolling text's second color next to the text color", async () => {
     await render();
     const card = section("store.appearance_sections_title");
     const accent = card.querySelector<HTMLInputElement>(
@@ -403,7 +403,7 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[0]!.sections.marquee.accentColor).toBe("#fedcba");
   });
 
-  it("gives the sparkle color its own Auto without clearing the text color", async () => {
+  it("gives the second color its own Auto without clearing the text color", async () => {
     await render();
     const card = section("store.appearance_sections_title");
     const color = card.querySelector<HTMLInputElement>(

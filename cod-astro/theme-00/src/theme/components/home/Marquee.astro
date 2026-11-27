@@ -61,7 +61,7 @@ const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.
     font-weight: 600;
     white-space: nowrap;
   }
-  .marquee-item :global(svg) { width: 0.875rem; height: 0.875rem; color: var(--marquee-sparkle, var(--clr-accent)); }
+  .marquee-item :global(svg) { width: 0.875rem; height: 0.875rem; color: var(--marquee-sparkle, var(--clr-highlight)); }
   @media (min-width: 1024px) { .marquee-item { padding-block: 1.125rem; font-size: var(--text-lg); } }
   @keyframes marquee { to { transform: translateX(-50%); } }
   :global([dir="rtl"]) .marquee-track { animation-name: marquee-rtl; }

@@ -31,6 +31,7 @@ export function ImageUploader({
   shape = "landscape",
   disabled,
   buttonLabel,
+  quietSuccess = false,
 }: {
   value: MediaImage | null;
   onChange: (image: MediaImage | null) => void;
@@ -38,6 +39,7 @@ export function ImageUploader({
   shape?: ImageUploaderShape;
   disabled?: boolean;
   buttonLabel?: string;
+  quietSuccess?: boolean;
 }) {
   const common = useT("common");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +63,7 @@ export function ImageUploader({
       const image = await upload(accepted[0]);
       if (!isMediaImage(image)) throw new ImageUploadFailedError(500);
       onChange(image);
-      notify.success(common("feedback.uploaded"));
+      if (!quietSuccess) notify.success(common("feedback.uploaded"));
     } catch (cause) {
       notify.error(common(`feedback.${uploadFailure(cause)}`));
     }

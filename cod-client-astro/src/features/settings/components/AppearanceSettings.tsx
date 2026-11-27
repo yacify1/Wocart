@@ -86,6 +86,7 @@ export function autoDetailSwatch(key: AppearanceDetailColorKey, scheme: Appearan
 }
 
 const IMAGE_SECTION_KEYS = new Set<AppearanceHomeSectionKey>(["hero", "image-banner"]);
+const MARQUEE_SECOND_AUTO = "#f2c14e";
 
 const LOOKS = [
   { id: "scheme-1", labelKey: "store.appearance_look_original" },
@@ -834,24 +835,26 @@ export function AppearanceSettings() {
                         {t("store.appearance_section_marquee_text_hint")}
                       </p>
                     </Field>
-                    <ColorField
-                      label={t("store.appearance_section_marquee_color")}
-                      value={section?.color ?? effectiveSchemeColor(current, "heading")}
-                      swatch={effectiveSchemeColor(current, "heading")}
-                      isAuto={!section?.color}
-                      autoLabel={t("store.appearance_color_auto")}
-                      onClear={() => updateSection(key, { color: null })}
-                      onChange={(color) => updateSection(key, { color })}
-                    />
-                    <ColorField
-                      label={t("store.appearance_section_marquee_accent_color")}
-                      value={section?.accentColor ?? effectiveSchemeColor(current, "accent")}
-                      swatch={effectiveSchemeColor(current, "accent")}
-                      isAuto={!section?.accentColor}
-                      autoLabel={t("store.appearance_color_auto")}
-                      onClear={() => updateSection(key, { accentColor: null })}
-                      onChange={(accentColor) => updateSection(key, { accentColor })}
-                    />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <ColorField
+                        label={t("store.appearance_section_marquee_color")}
+                        value={section?.color ?? effectiveSchemeColor(current, "heading")}
+                        swatch={effectiveSchemeColor(current, "heading")}
+                        isAuto={!section?.color}
+                        autoLabel={t("store.appearance_color_auto")}
+                        onClear={() => updateSection(key, { color: null })}
+                        onChange={(color) => updateSection(key, { color })}
+                      />
+                      <ColorField
+                        label={t("store.appearance_section_marquee_accent_color")}
+                        value={section?.accentColor ?? MARQUEE_SECOND_AUTO}
+                        swatch={MARQUEE_SECOND_AUTO}
+                        isAuto={!section?.accentColor}
+                        autoLabel={t("store.appearance_color_auto")}
+                        onClear={() => updateSection(key, { accentColor: null })}
+                        onChange={(accentColor) => updateSection(key, { accentColor })}
+                      />
+                    </div>
                   </div>
                 )}
                 {IMAGE_SECTION_KEYS.has(key) && (
@@ -867,6 +870,7 @@ export function AppearanceSettings() {
                       alt={label}
                       shape="landscape"
                       buttonLabel={t("store.appearance_section_upload")}
+                      quietSuccess={key === "hero"}
                     />
                   </div>
                 )}
