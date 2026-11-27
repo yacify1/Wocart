@@ -295,12 +295,37 @@ describe("category photos", () => {
     expect(html).toContain("18vw, 62vw");
   });
 
-  it("caps a short row so its tiles stay proportional instead of filling the frame", () => {
+  it("caps a short row and stretches every tile to the same height", () => {
     const source = readFileSync(resolve(process.cwd(), "src/theme/components/home/CategoryCards.astro"), "utf8");
     expect(source).toContain("--tile-max: 16rem;");
-    expect(source).toContain(".category-tiles > li { width: 100%; max-width: var(--tile-max); justify-self: center; }");
+    expect(source).toContain(".category-tiles > li { display: flex; width: 100%; max-width: var(--tile-max); justify-self: center; }");
+    expect(source).toContain("grid-auto-rows: 1fr;");
+    expect(source).toContain(".category-tile { display: block; width: 100%; height: 100%; min-height: 0; aspect-ratio: 4 / 5;");
     expect(source).toContain(
       "width: min(100%, calc(var(--tiles) * var(--tile-max) + (var(--tiles) - 1) * var(--tile-gap)));",
     );
+    expect(source).toContain("-webkit-line-clamp: 2;");
+    expect(source).toContain(".category-all {");
+  });
+
+  it("lets the store recolor a section on the element that wears its scheme", async () => {
+    const html = await renderSections([{ id: "c", type: "category-cards" }], fakeStorefront([], categories), {
+      themeSettings: {
+        homeCategoryCardsTextColor: "#112233",
+        homeCategoryCardsBackgroundColor: "#f5f5f0",
+        homeCategoryCardsButtonColor: "#445566",
+      },
+    });
+    expect(html).toMatch(/<section[^>]*\bstyle="[^"]*--clr-ink: #112233/);
+    expect(html).toMatch(/<section[^>]*\bclass="[^"]*\bwc-scheme\b/);
+    expect(html).toContain("--clr-bg: #f5f5f0");
+    expect(html).toContain("--clr-primary: #445566");
+  });
+
+  it("ignores a section color the theme cannot use", async () => {
+    const html = await renderSections([{ id: "c", type: "category-cards" }], fakeStorefront([], categories), {
+      themeSettings: { homeCategoryCardsTextColor: "javascript:alert(1)" },
+    });
+    expect(html).not.toContain("javascript:alert(1)");
   });
 });

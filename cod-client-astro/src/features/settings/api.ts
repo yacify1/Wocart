@@ -1,5 +1,6 @@
 import { ApiError, apiFetch } from "@/lib/api";
 import type {
+  AppearanceChromeColors,
   AppearanceColorScheme,
   AppearanceDetailColors,
   AppearanceLogoAlignment,
@@ -45,6 +46,7 @@ export interface SaveAppearanceInput {
   headerHtml?: string;
   logoAlignment?: AppearanceLogoAlignment;
   sections?: AppearanceSectionEdits;
+  chromeColors?: AppearanceChromeColors;
   detailColors?: AppearanceDetailColors;
   /** One language's text edits; an empty string removes that edit. */
   texts?: { locale: StoreLocale; values: Record<string, string> };

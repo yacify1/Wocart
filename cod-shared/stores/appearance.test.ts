@@ -350,7 +350,7 @@ describe("logo alignment and home sections", () => {
       /sparkles need a hex color/,
     );
     expect(appearanceSettingsProblem({ ...valid(), sections: { marquee: { backgroundColor: "gold" } } })).toMatch(
-      /band needs a hex color/,
+      /backgroundColor needs a hex color/,
     );
     expect(
       appearanceSettingsProblem({ ...valid(), sections: { marquee: { text: "x".repeat(501) } } }),
@@ -396,6 +396,94 @@ describe("logo alignment and home sections", () => {
         "homeMarqueeBackgroundColor",
       ]),
     );
+  });
+});
+
+describe("section and chrome colors", () => {
+  it("writes each home section's three colors as flat theme keys and removes cleared ones", () => {
+    const settings: AppearanceSettings = {
+      ...valid(),
+      sections: {
+        hero: { color: "#112233", backgroundColor: "#f5f5f0", buttonColor: "#445566" },
+        "category-cards": { buttonColor: "#abcdef" },
+      },
+    };
+    expect(appearanceSettingsToTheme(settings)).toMatchObject({
+      homeHeroTextColor: "#112233",
+      homeHeroBackgroundColor: "#f5f5f0",
+      homeHeroButtonColor: "#445566",
+      homeCategoryCardsButtonColor: "#abcdef",
+    });
+    expect(appearanceSettingsToRemove(settings)).toEqual(
+      expect.arrayContaining(["homeCategoryCardsTextColor", "homeCategoryCardsBackgroundColor"]),
+    );
+    expect(appearanceSettingsToRemove(settings)).not.toContain("homeHeroTextColor");
+    expect(appearanceSettingsToRemove(settings)).not.toContain("homeHeroBackgroundColor");
+    expect(appearanceSettingsToRemove(settings)).not.toContain("homeHeroButtonColor");
+    expect(appearanceSettingsToRemove(settings)).not.toContain("homeCategoryCardsButtonColor");
+  });
+
+  it("writes the header groups' colors and reads them back, including the marquee button override", () => {
+    const settings: AppearanceSettings = {
+      ...valid(),
+      chromeColors: {
+        announcement: { color: "#111111", backgroundColor: "#eeeeee", buttonColor: "#222222" },
+        header: { color: "#333333" },
+        headerHtml: { buttonColor: "#444444" },
+      },
+      sections: { marquee: { buttonColor: "#556677" } },
+    };
+    expect(appearanceSettingsProblem(settings)).toBeNull();
+    const flat = appearanceSettingsToTheme(settings);
+    expect(flat).toMatchObject({
+      announcementTextColor: "#111111",
+      announcementBackgroundColor: "#eeeeee",
+      announcementButtonColor: "#222222",
+      headerTextColor: "#333333",
+      headerHtmlButtonColor: "#444444",
+      homeMarqueeButtonColor: "#556677",
+    });
+    const read = appearanceThemeSettingsOf(flat)!;
+    expect(read.chromeColors).toEqual(settings.chromeColors);
+    expect(read.sections?.marquee).toEqual({ buttonColor: "#556677" });
+    expect(appearanceSettingsToRemove(settings)).toEqual(
+      expect.arrayContaining([
+        "headerBackgroundColor",
+        "headerButtonColor",
+        "headerHtmlTextColor",
+        "headerHtmlBackgroundColor",
+        "homeMarqueeColor",
+      ]),
+    );
+    expect(appearanceSettingsToRemove(settings)).not.toContain("headerTextColor");
+    expect(appearanceSettingsToRemove(settings)).not.toContain("homeMarqueeButtonColor");
+  });
+
+  it("refuses colors that are not hex and keys that are not header groups", () => {
+    expect(appearanceSettingsProblem({ ...valid(), chromeColors: { footer: { color: "#123456" } } })).toMatch(
+      /not a header color group/,
+    );
+    expect(
+      appearanceSettingsProblem({ ...valid(), chromeColors: { header: { color: "gold" } } }),
+    ).toMatch(/needs a hex color/);
+    expect(appearanceSettingsProblem({ ...valid(), sections: { hero: { buttonColor: "red" } } })).toMatch(
+      /buttonColor needs a hex color/,
+    );
+  });
+
+  it("merges cleared colors back to auto without losing the other controls", () => {
+    const current: AppearanceSettings = {
+      ...valid(),
+      hideLogo: true,
+      chromeColors: { header: { color: "#333333", buttonColor: "#444444" } },
+      sections: { hero: { color: "#112233" } },
+    };
+    const next = { ...valid(), chromeColors: { header: { color: null } }, sections: { hero: { color: null } } };
+    delete next.hideLogo;
+    const merged = mergeAppearance(current, next);
+    expect(merged.settings?.chromeColors).toEqual({ header: { buttonColor: "#444444" } });
+    expect(merged.settings?.sections?.hero).toBeUndefined();
+    expect(merged.settings?.hideLogo).toBe(true);
   });
 });
 

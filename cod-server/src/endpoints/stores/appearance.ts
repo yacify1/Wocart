@@ -26,6 +26,7 @@ import { STORE_LOCALES } from "../../../../cod-shared/i18n/locales";
 import { NotFoundError, ValidationError } from "@/lib/errors/classes";
 import { ERROR_CODES } from "../../../../cod-shared/errors/codes";
 import {
+  APPEARANCE_CHROME_KEYS,
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEADER_HTML_MAX,
   APPEARANCE_HEX,
@@ -35,6 +36,7 @@ import {
   APPEARANCE_MAX_SCHEMES,
   APPEARANCE_MEDIA_KEY,
   APPEARANCE_SCHEME_ID,
+  APPEARANCE_SECTION_COLOR_FIELDS,
   APPEARANCE_TEXT_KEYS,
   appearanceLocaleProblem,
   appearanceSettingsToRemove,
@@ -93,14 +95,20 @@ const appearanceImageSchema = z.object({
     .optional(),
 });
 
-const sectionEditSchema = z.object({
+const sectionColorSchema = z.object({
+  color: z.string().regex(APPEARANCE_HEX).nullable().optional(),
+  backgroundColor: z.string().regex(APPEARANCE_HEX).nullable().optional(),
+  buttonColor: z.string().regex(APPEARANCE_HEX).nullable().optional(),
+});
+
+const sectionEditSchema = sectionColorSchema.extend({
   hidden: z.boolean().nullable().optional(),
   image: appearanceImageSchema.nullable().optional(),
   text: z.string().max(APPEARANCE_MARQUEE_TEXT_MAX).nullable().optional(),
-  color: z.string().regex(APPEARANCE_HEX).nullable().optional(),
   accentColor: z.string().regex(APPEARANCE_HEX).nullable().optional(),
-  backgroundColor: z.string().regex(APPEARANCE_HEX).nullable().optional(),
 });
+
+const chromeColorsSchema = z.record(z.enum(APPEARANCE_CHROME_KEYS), sectionColorSchema);
 
 const detailColor = z.string().regex(APPEARANCE_HEX).nullable().optional();
 const detailColorsSchema = z.object({
@@ -110,7 +118,13 @@ const detailColorsSchema = z.object({
   newPrice: detailColor,
 });
 
-const sectionStateSchema = z.object({
+const sectionColorStateSchema = z.object(
+  Object.fromEntries(
+    APPEARANCE_SECTION_COLOR_FIELDS.map((field) => [field, z.string().nullable().optional()]),
+  ),
+);
+
+const sectionStateSchema = sectionColorStateSchema.extend({
   hidden: z.boolean(),
   image: z
     .object({
@@ -121,9 +135,7 @@ const sectionStateSchema = z.object({
     })
     .nullable(),
   text: z.string().nullable().optional(),
-  color: z.string().nullable().optional(),
   accentColor: z.string().nullable().optional(),
-  backgroundColor: z.string().nullable().optional(),
 });
 
 const appearanceSchema = z.object({
@@ -139,6 +151,7 @@ const appearanceSchema = z.object({
   headerHtml: z.string(),
   logoAlignment: logoAlignmentSchema,
   sections: z.record(z.enum(SECTION_KEYS), sectionStateSchema),
+  chromeColors: chromeColorsSchema,
   detailColors: detailColorsSchema,
   texts: z.record(z.string(), z.record(z.string(), z.string())),
 });
@@ -153,6 +166,7 @@ export const saveAppearanceSchema = z.object({
   headerHtml: z.string().max(APPEARANCE_HEADER_HTML_MAX).optional(),
   logoAlignment: logoAlignmentSchema.optional(),
   sections: z.partialRecord(z.enum(SECTION_KEYS), sectionEditSchema).optional(),
+  chromeColors: chromeColorsSchema.optional(),
   detailColors: detailColorsSchema.optional(),
   texts: z
     .object({
@@ -192,17 +206,23 @@ async function appearanceOf(db: ReturnType<typeof getDb>, store: StoreRow, env: 
           image: source
             ? imageOf(source.key, delivery, { width: source.width, height: source.height })
             : null,
-          ...(section.key === "marquee"
-            ? {
-                text: edit?.text ?? "",
-                color: edit?.color ?? null,
-                accentColor: edit?.accentColor ?? null,
-                backgroundColor: edit?.backgroundColor ?? null,
-              }
-            : {}),
+          color: edit?.color ?? null,
+          backgroundColor: edit?.backgroundColor ?? null,
+          buttonColor: edit?.buttonColor ?? null,
+          ...(section.key === "marquee" ? { text: edit?.text ?? "", accentColor: edit?.accentColor ?? null } : {}),
         },
       ];
     }),
+  );
+  const chromeColors = Object.fromEntries(
+    APPEARANCE_CHROME_KEYS.map((key) => [
+      key,
+      {
+        color: saved?.chromeColors?.[key]?.color ?? null,
+        backgroundColor: saved?.chromeColors?.[key]?.backgroundColor ?? null,
+        buttonColor: saved?.chromeColors?.[key]?.buttonColor ?? null,
+      },
+    ]),
   );
   return {
     themeKey: store.themeId,
@@ -217,6 +237,7 @@ async function appearanceOf(db: ReturnType<typeof getDb>, store: StoreRow, env: 
     headerHtml: saved?.headerHtml ?? "",
     logoAlignment: saved?.logoAlignment ?? "right",
     sections,
+    chromeColors,
     detailColors: (saved?.detailColors ?? {}) as AppearanceDetailColors,
     texts,
   };
@@ -251,6 +272,7 @@ export async function saveAppearance(c: Context<AppContext>) {
     headerHtml: sanitizeHeaderHtml(body.headerHtml ?? saved?.headerHtml ?? ""),
     logoAlignment: body.logoAlignment ?? saved?.logoAlignment ?? "right",
     sections: body.sections as AppearanceSectionEdits | undefined,
+    chromeColors: body.chromeColors,
     detailColors: body.detailColors as AppearanceDetailColors | undefined,
   });
   if (merged.error || !merged.settings) {

@@ -10,16 +10,18 @@ import Section from "@/theme/components/ui/Section.astro";
 import SectionHead from "@/theme/components/ui/SectionHead.astro";
 import type { StoreFrontContent } from "@/theme/content";
 import type { productTabs } from "@/theme/catalog/home/product-tabs.def";
+import { homeSectionStateOf } from "@/theme/runtime/home-sections";
 
 type Props = InferProps<typeof productTabs> & { blocks: BlocksHandle; content: StoreFrontContent };
 
 const { blocks, content, headingAlign, layout, columns, showViewAll, scheme, style } = Astro.props;
 const shown = hasBlocks(blocks, "tabs") || isPreview(blocks);
 const across = Math.min(5, Math.max(2, Math.round(columns)));
+const section = homeSectionStateOf(Astro.locals.store, "product-tabs");
 ---
 
 {shown && (
-  <Section scheme={scheme} style={style}>
+  <Section scheme={scheme} style={style} colors={section.colors}>
     <div class:list={["product-tabs", layout === "carousel" && "is-carousel", !showViewAll && "no-view-all"]} data-product-tabs style={`--across: ${across}`}>
       <SectionHead title={content.productTabsTitle} sub={content.productTabsSub} center={headingAlign === "center"} />
       <div class:list={["tab-list", headingAlign === "center" && "is-center"]} role="tablist" hidden></div>

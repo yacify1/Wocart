@@ -288,6 +288,22 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[0]!.texts).toBeUndefined();
   });
 
+  it("saves the header groups' colors with the storefront controls", async () => {
+    await render();
+    const input = Array.from(host.querySelectorAll<HTMLInputElement>('input[aria-label$=" hex"]')).find((node) =>
+      node.getAttribute("aria-label")?.includes("store.appearance_group_top_strip"),
+    )!;
+    expect(input).toBeTruthy();
+    await setValue(input, "#112233", "input");
+
+    await click(saveButton(section("store.appearance_storefront_title")));
+
+    expect(seam.calls).toHaveLength(1);
+    expect(seam.calls[0]!.chromeColors.announcement.color).toBe("#112233");
+    expect(seam.calls[0]!.colorSchemes).toBeUndefined();
+    expect(seam.calls[0]!.texts).toBeUndefined();
+  });
+
   it("saves the hide-header-text switch without touching colors or texts", async () => {
     await render();
     const toggle = [...host.querySelectorAll<HTMLButtonElement>('[role="switch"]')].find((node) =>

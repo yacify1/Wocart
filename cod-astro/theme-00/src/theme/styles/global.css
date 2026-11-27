@@ -700,11 +700,11 @@ body.has-mobile-nav .wa-widget {
 }
 
 body[data-sticky-cta="visible"] .wa-widget {
-  --wa-bottom: calc(var(--safe-bottom) + var(--wa-gap) + 3.5rem);
+  --wa-bottom: calc(var(--safe-bottom) + var(--wa-gap) + 5rem);
 }
 
 body.has-mobile-nav[data-sticky-cta="visible"] .wa-widget {
-  --wa-bottom: calc(4rem + var(--safe-bottom) + var(--wa-gap) + 3.5rem);
+  --wa-bottom: calc(4rem + var(--safe-bottom) + var(--wa-gap) + 5rem);
 }
 
 @media (min-width: 1024px) {

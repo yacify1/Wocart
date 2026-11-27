@@ -25,6 +25,14 @@ export const APPEARANCE_DETAIL_COLOR_KEYS = ["secondaryButton", "offer", "oldPri
 export type AppearanceDetailColorKey = (typeof APPEARANCE_DETAIL_COLOR_KEYS)[number];
 export type AppearanceDetailColors = Partial<Record<AppearanceDetailColorKey, string | null>>;
 
+export const APPEARANCE_SECTION_COLOR_FIELDS = ["color", "backgroundColor", "buttonColor"] as const;
+export type AppearanceSectionColorField = (typeof APPEARANCE_SECTION_COLOR_FIELDS)[number];
+export type AppearanceSectionColors = Partial<Record<AppearanceSectionColorField, string | null>>;
+
+export const APPEARANCE_CHROME_KEYS = ["announcement", "header", "headerHtml"] as const;
+export type AppearanceChromeKey = (typeof APPEARANCE_CHROME_KEYS)[number];
+export type AppearanceChromeColors = Partial<Record<AppearanceChromeKey, AppearanceSectionColors>>;
+
 const DETAIL_COLOR_FLAT_KEYS: Record<AppearanceDetailColorKey, string> = {
   secondaryButton: "secondaryButtonColor",
   offer: "offerColor",
@@ -86,12 +94,14 @@ export interface AppearanceSectionEdit {
   image?: AppearanceImage | null;
   /** Scrolling text, with simple HTML; null uses the theme's messages. Marquee only. */
   text?: string | null;
-  /** A custom scrolling-text color; null follows the page scheme. Marquee only. */
+  /** A custom text color; null follows the page scheme. */
   color?: string | null;
   /** A custom color for the sparkle icons beside each message. Marquee only. */
   accentColor?: string | null;
-  /** A custom scrolling-text band background; null follows the theme's band. Marquee only. */
+  /** A custom background color; null follows the page scheme. */
   backgroundColor?: string | null;
+  /** A custom button color; null follows the page scheme. */
+  buttonColor?: string | null;
 }
 
 export type AppearanceSectionEdits = Partial<Record<AppearanceHomeSectionKey, AppearanceSectionEdit>>;
@@ -118,6 +128,8 @@ export interface AppearanceSettings {
   logoAlignment?: AppearanceLogoAlignment;
   /** Per-section visibility and photo overrides. */
   sections?: AppearanceSectionEdits;
+  /** Per-section colors for the announcement, the header and the header HTML strip. */
+  chromeColors?: AppearanceChromeColors;
   detailColors?: AppearanceDetailColors;
 }
 
@@ -188,6 +200,55 @@ const MARQUEE_TEXT_FLAT_KEY = "homeMarqueeText";
 const MARQUEE_COLOR_FLAT_KEY = "homeMarqueeColor";
 const MARQUEE_ACCENT_COLOR_FLAT_KEY = "homeMarqueeAccentColor";
 const MARQUEE_BACKGROUND_COLOR_FLAT_KEY = "homeMarqueeBackgroundColor";
+
+const SECTION_COLOR_FLAT_KEYS: Record<AppearanceHomeSectionKey, Record<AppearanceSectionColorField, string>> = {
+  hero: { color: "homeHeroTextColor", backgroundColor: "homeHeroBackgroundColor", buttonColor: "homeHeroButtonColor" },
+  marquee: { color: MARQUEE_COLOR_FLAT_KEY, backgroundColor: MARQUEE_BACKGROUND_COLOR_FLAT_KEY, buttonColor: "homeMarqueeButtonColor" },
+  "category-cards": {
+    color: "homeCategoryCardsTextColor",
+    backgroundColor: "homeCategoryCardsBackgroundColor",
+    buttonColor: "homeCategoryCardsButtonColor",
+  },
+  "product-tabs": {
+    color: "homeProductTabsTextColor",
+    backgroundColor: "homeProductTabsBackgroundColor",
+    buttonColor: "homeProductTabsButtonColor",
+  },
+  "image-banner": {
+    color: "homeImageBannerTextColor",
+    backgroundColor: "homeImageBannerBackgroundColor",
+    buttonColor: "homeImageBannerButtonColor",
+  },
+  "how-it-works": {
+    color: "homeHowItWorksTextColor",
+    backgroundColor: "homeHowItWorksBackgroundColor",
+    buttonColor: "homeHowItWorksButtonColor",
+  },
+  "customer-testimonials": {
+    color: "homeCustomerTestimonialsTextColor",
+    backgroundColor: "homeCustomerTestimonialsBackgroundColor",
+    buttonColor: "homeCustomerTestimonialsButtonColor",
+  },
+  "features-bar": {
+    color: "homeFeaturesBarTextColor",
+    backgroundColor: "homeFeaturesBarBackgroundColor",
+    buttonColor: "homeFeaturesBarButtonColor",
+  },
+};
+
+const CHROME_COLOR_FLAT_KEYS: Record<AppearanceChromeKey, Record<AppearanceSectionColorField, string>> = {
+  announcement: {
+    color: "announcementTextColor",
+    backgroundColor: "announcementBackgroundColor",
+    buttonColor: "announcementButtonColor",
+  },
+  header: { color: "headerTextColor", backgroundColor: "headerBackgroundColor", buttonColor: "headerButtonColor" },
+  headerHtml: {
+    color: "headerHtmlTextColor",
+    backgroundColor: "headerHtmlBackgroundColor",
+    buttonColor: "headerHtmlButtonColor",
+  },
+};
 
 const HEADER_HTML_TAGS = new Set(["a", "b", "strong", "i", "em", "u", "small", "span", "br"]);
 const HEADER_HTML_ATTR = /([a-z][a-z0-9-]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
@@ -341,7 +402,8 @@ export function appearanceSectionsProblem(value: unknown): string | null {
     if (!SECTION_KEYS.includes(key)) return `"${key}" is not a home section`;
     if (!isRecord(edit)) return `section "${key}" must be an object`;
     const unknown = Object.keys(edit).find(
-      (name) => !["hidden", "image", "text", "color", "accentColor", "backgroundColor"].includes(name),
+      (name) =>
+        !["hidden", "image", "text", "accentColor", ...APPEARANCE_SECTION_COLOR_FIELDS].includes(name),
     );
     if (unknown !== undefined) return `section "${key}" has an unknown key "${unknown}"`;
     if (edit.hidden !== undefined && edit.hidden !== null && typeof edit.hidden !== "boolean") {
@@ -351,13 +413,7 @@ export function appearanceSectionsProblem(value: unknown): string | null {
       const problem = appearanceImageProblem(edit.image);
       if (problem) return `section "${key}" image ${problem}`;
     }
-    if (
-      (edit.text !== undefined ||
-        edit.color !== undefined ||
-        edit.accentColor !== undefined ||
-        edit.backgroundColor !== undefined) &&
-      key !== "marquee"
-    ) {
+    if ((edit.text !== undefined || edit.accentColor !== undefined) && key !== "marquee") {
       return `section "${key}" cannot hold scrolling text`;
     }
     if (edit.text !== undefined && edit.text !== null) {
@@ -366,9 +422,10 @@ export function appearanceSectionsProblem(value: unknown): string | null {
         return `scrolling text holds at most ${APPEARANCE_MARQUEE_TEXT_MAX} characters`;
       }
     }
-    if (edit.color !== undefined && edit.color !== null) {
-      if (typeof edit.color !== "string" || !APPEARANCE_HEX.test(edit.color)) {
-        return `scrolling text needs a hex color`;
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      const color = edit[field];
+      if (color !== undefined && color !== null && (typeof color !== "string" || !APPEARANCE_HEX.test(color))) {
+        return `section "${key}" ${field} needs a hex color`;
       }
     }
     if (edit.accentColor !== undefined && edit.accentColor !== null) {
@@ -376,9 +433,20 @@ export function appearanceSectionsProblem(value: unknown): string | null {
         return `scrolling-text sparkles need a hex color`;
       }
     }
-    if (edit.backgroundColor !== undefined && edit.backgroundColor !== null) {
-      if (typeof edit.backgroundColor !== "string" || !APPEARANCE_HEX.test(edit.backgroundColor)) {
-        return `scrolling-text band needs a hex color`;
+  }
+  return null;
+}
+
+export function appearanceChromeColorsProblem(value: unknown): string | null {
+  if (value === undefined) return null;
+  if (!isRecord(value)) return "chromeColors must be an object";
+  for (const [key, colors] of Object.entries(value)) {
+    if (!(APPEARANCE_CHROME_KEYS as readonly string[]).includes(key)) return `"${key}" is not a header color group`;
+    if (!isRecord(colors)) return `"${key}" colors must be an object`;
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      const color = colors[field];
+      if (color !== undefined && color !== null && (typeof color !== "string" || !APPEARANCE_HEX.test(color))) {
+        return `"${key}" ${field} needs a hex color`;
       }
     }
   }
@@ -404,13 +472,21 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
     const edit = settings.sections?.[section.key];
     if (edit?.hidden === true) flat[section.hiddenKey] = true;
     if (edit?.image !== undefined && edit.image !== null) flat[section.imageKey] = edit.image;
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      const color = edit?.[field];
+      if (color) flat[SECTION_COLOR_FLAT_KEYS[section.key][field]] = color;
+    }
+  }
+  for (const key of APPEARANCE_CHROME_KEYS) {
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      const color = settings.chromeColors?.[key]?.[field];
+      if (color) flat[CHROME_COLOR_FLAT_KEYS[key][field]] = color;
+    }
   }
   const marquee = settings.sections?.marquee;
   const marqueeText = typeof marquee?.text === "string" ? sanitizeMarqueeHtml(marquee.text).trim() : "";
   if (marqueeText) flat[MARQUEE_TEXT_FLAT_KEY] = marqueeText;
-  if (marquee?.color) flat[MARQUEE_COLOR_FLAT_KEY] = marquee.color;
   if (marquee?.accentColor) flat[MARQUEE_ACCENT_COLOR_FLAT_KEY] = marquee.accentColor;
-  if (marquee?.backgroundColor) flat[MARQUEE_BACKGROUND_COLOR_FLAT_KEY] = marquee.backgroundColor;
   for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
     const color = settings.detailColors?.[key];
     if (color) flat[flatKey] = color;
@@ -423,13 +499,19 @@ export function appearanceSettingsToRemove(settings: AppearanceSettings): string
   const removed = ["hideHeroImages", ...LEGACY_COLOR_KEYS];
   const marquee = settings.sections?.marquee;
   if (!marquee?.text || !sanitizeMarqueeHtml(marquee.text).trim()) removed.push(MARQUEE_TEXT_FLAT_KEY);
-  if (!marquee?.color) removed.push(MARQUEE_COLOR_FLAT_KEY);
   if (!marquee?.accentColor) removed.push(MARQUEE_ACCENT_COLOR_FLAT_KEY);
-  if (!marquee?.backgroundColor) removed.push(MARQUEE_BACKGROUND_COLOR_FLAT_KEY);
   for (const section of APPEARANCE_HOME_SECTIONS) {
     const edit = settings.sections?.[section.key];
     if (edit?.hidden !== true) removed.push(section.hiddenKey);
     if (edit?.image === null || edit?.image === undefined) removed.push(section.imageKey);
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      if (!edit?.[field]) removed.push(SECTION_COLOR_FLAT_KEYS[section.key][field]);
+    }
+  }
+  for (const key of APPEARANCE_CHROME_KEYS) {
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      if (!settings.chromeColors?.[key]?.[field]) removed.push(CHROME_COLOR_FLAT_KEYS[key][field]);
+    }
   }
   for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
     if (!settings.detailColors?.[key]) removed.push(flatKey);
@@ -446,19 +528,26 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
     if (stored[section.hiddenKey] === true) edit.hidden = true;
     const image = stored[section.imageKey];
     if (image !== undefined && appearanceImageProblem(image) === null) edit.image = image as AppearanceImage;
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      const color = stored[SECTION_COLOR_FLAT_KEYS[section.key][field]];
+      if (typeof color === "string" && APPEARANCE_HEX.test(color)) edit[field] = color;
+    }
     if (section.key === "marquee") {
       const text = stored[MARQUEE_TEXT_FLAT_KEY];
       if (typeof text === "string" && text.trim()) edit.text = sanitizeMarqueeHtml(text).trim();
-      const color = stored[MARQUEE_COLOR_FLAT_KEY];
-      if (typeof color === "string" && APPEARANCE_HEX.test(color)) edit.color = color;
       const accentColor = stored[MARQUEE_ACCENT_COLOR_FLAT_KEY];
       if (typeof accentColor === "string" && APPEARANCE_HEX.test(accentColor)) edit.accentColor = accentColor;
-      const backgroundColor = stored[MARQUEE_BACKGROUND_COLOR_FLAT_KEY];
-      if (typeof backgroundColor === "string" && APPEARANCE_HEX.test(backgroundColor)) {
-        edit.backgroundColor = backgroundColor;
-      }
     }
     if (Object.keys(edit).length > 0) sections[section.key] = edit;
+  }
+  const chromeColors: AppearanceChromeColors = {};
+  for (const key of APPEARANCE_CHROME_KEYS) {
+    const colors: AppearanceSectionColors = {};
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      const color = stored[CHROME_COLOR_FLAT_KEYS[key][field]];
+      if (typeof color === "string" && APPEARANCE_HEX.test(color)) colors[field] = color;
+    }
+    if (Object.keys(colors).length > 0) chromeColors[key] = colors;
   }
   if (stored.hideHeroImages === true) {
     if (stored.homeHeroHidden === undefined) sections.hero = { ...sections.hero, hidden: true };
@@ -486,6 +575,7 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
       ? (stored.logoAlignment as AppearanceLogoAlignment)
       : "right",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
+    chromeColors: Object.keys(chromeColors).length > 0 ? chromeColors : undefined,
     detailColors: detailColorsOf(stored),
   };
   return appearanceSettingsProblem(candidate) === null ? (candidate as AppearanceSettings) : null;
@@ -556,6 +646,8 @@ export function appearanceSettingsProblem(value: unknown): string | null {
     const sectionsProblem = appearanceSectionsProblem(value.sections);
     if (sectionsProblem) return sectionsProblem;
   }
+  const chromeProblem = appearanceChromeColorsProblem(value.chromeColors);
+  if (chromeProblem) return chromeProblem;
   const detailProblem = appearanceDetailColorsProblem(value.detailColors);
   if (detailProblem) return detailProblem;
   return null;
@@ -583,22 +675,36 @@ export function mergeAppearance(
       if (text) merged.text = text;
       else delete merged.text;
     }
-    if (Object.prototype.hasOwnProperty.call(edit, "color")) {
-      if (edit.color) merged.color = edit.color;
-      else delete merged.color;
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(edit, field)) {
+        if (edit[field]) merged[field] = edit[field];
+        else delete merged[field];
+      }
     }
     if (Object.prototype.hasOwnProperty.call(edit, "accentColor")) {
       if (edit.accentColor) merged.accentColor = edit.accentColor;
       else delete merged.accentColor;
     }
-    if (Object.prototype.hasOwnProperty.call(edit, "backgroundColor")) {
-      if (edit.backgroundColor) merged.backgroundColor = edit.backgroundColor;
-      else delete merged.backgroundColor;
-    }
     if (merged.hidden === undefined || merged.hidden === null) delete merged.hidden;
     if (merged.image === undefined) delete merged.image;
     if (Object.keys(merged).length > 0) sections[key as AppearanceHomeSectionKey] = merged;
     else delete sections[key as AppearanceHomeSectionKey];
+  }
+  const chromeColors: AppearanceChromeColors = current?.chromeColors
+    ? JSON.parse(JSON.stringify(current.chromeColors))
+    : {};
+  for (const key of APPEARANCE_CHROME_KEYS) {
+    const incoming = next.chromeColors?.[key];
+    if (!incoming) continue;
+    const colors = { ...chromeColors[key] };
+    for (const field of APPEARANCE_SECTION_COLOR_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(incoming, field)) {
+        if (incoming[field]) colors[field] = incoming[field];
+        else delete colors[field];
+      }
+    }
+    if (Object.keys(colors).length > 0) chromeColors[key] = colors;
+    else delete chromeColors[key];
   }
   const controls = {
     hideLogo: next.hideLogo ?? current?.hideLogo ?? false,
@@ -608,6 +714,7 @@ export function mergeAppearance(
     headerHtml: sanitizeHeaderHtml(next.headerHtml ?? current?.headerHtml ?? ""),
     logoAlignment: next.logoAlignment ?? current?.logoAlignment ?? "right",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
+    chromeColors: Object.keys(chromeColors).length > 0 ? chromeColors : undefined,
     detailColors: next.detailColors !== undefined ? next.detailColors : current?.detailColors,
   };
   if (!current || current.colorSchemes.length === 0) return { settings: { ...next, ...controls } };

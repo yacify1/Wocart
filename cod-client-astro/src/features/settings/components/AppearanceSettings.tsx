@@ -9,25 +9,31 @@ import { ImageUploader } from "@/features/uploads/components/ImageUploader";
 import { isMediaImage, type MediaImage } from "@/features/uploads/api";
 import type { StoreAppearance } from "@/features/settings/types";
 import {
+  APPEARANCE_CHROME_KEYS,
   APPEARANCE_COLOR_ROLES,
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEADER_HTML_MAX,
   APPEARANCE_HOME_SECTIONS,
   APPEARANCE_LOGO_ALIGNMENTS,
   APPEARANCE_MARQUEE_TEXT_MAX,
+  APPEARANCE_SECTION_COLOR_FIELDS,
   APPEARANCE_TEXT_KEYS,
   APPEARANCE_TEXT_LIMITS,
   APPEARANCE_HEX,
   colorSchemesProblem,
   effectiveSchemeColor,
   effectiveSchemeColors,
+  type AppearanceChromeKey,
   type AppearanceColorRole,
   type AppearanceColorScheme,
+  type AppearanceChromeColors,
   type AppearanceDetailColorKey,
   type AppearanceDetailColors,
   type AppearanceHomeSectionKey,
   type AppearanceImage,
   type AppearanceLogoAlignment,
+  type AppearanceSectionColorField,
+  type AppearanceSectionColors,
   type AppearanceSectionEdits,
   type AppearanceTextKey,
 } from "../../../../../cod-shared/stores/appearance";
@@ -41,6 +47,18 @@ const COLOR_LABEL_KEYS: Record<AppearanceColorRole, string> = {
   button: "store.appearance_color_primary",
   buttonText: "store.appearance_color_buttonText",
   border: "store.appearance_color_border",
+};
+
+const CHROME_LABEL_KEYS: Record<AppearanceChromeKey, string> = {
+  announcement: "store.appearance_group_top_strip",
+  header: "store.appearance_group_header",
+  headerHtml: "store.appearance_group_header_html",
+};
+
+const SECTION_COLOR_LABEL_KEYS: Record<AppearanceSectionColorField, string> = {
+  color: "store.appearance_color_text_color",
+  backgroundColor: "store.appearance_color_background_color",
+  buttonColor: "store.appearance_color_button_color",
 };
 
 const TEXT_FIELDS: { key: AppearanceTextKey; labelKey: string; hintKey?: string }[] = [
@@ -70,6 +88,14 @@ function mixHex(from: string, to: string, weight: number): string {
   return `#${mixed.join("")}`;
 }
 
+function readableOn(hex: string): string {
+  const channel = (at: number) => {
+    const value = Number.parseInt(hex.slice(at, at + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  return channel(1) * 0.2126 + channel(3) * 0.7152 + channel(5) * 0.0722 > 0.179 ? "#0f1626" : "#ffffff";
+}
+
 function autoDetailColor(key: AppearanceDetailColorKey, scheme: AppearanceColorScheme | undefined): string {
   if (key === "secondaryButton") return effectiveSchemeColor(scheme, "heading");
   if (key === "oldPrice") {
@@ -88,7 +114,6 @@ export function autoDetailSwatch(key: AppearanceDetailColorKey, scheme: Appearan
 
 const IMAGE_SECTION_KEYS = new Set<AppearanceHomeSectionKey>(["hero", "image-banner"]);
 const MARQUEE_SECOND_AUTO = "#f2c14e";
-const MARQUEE_BACKGROUND_AUTO = "#f2c14e";
 
 const LOOKS = [
   { id: "scheme-1", labelKey: "store.appearance_look_original" },
@@ -127,9 +152,14 @@ function safeSize(value: unknown): number | undefined {
 type SectionState = StoreAppearance["sections"][AppearanceHomeSectionKey];
 
 function emptySection(key: AppearanceHomeSectionKey): SectionState {
-  return key === "marquee"
-    ? { hidden: false, image: null, text: "", color: null, accentColor: null, backgroundColor: null }
-    : { hidden: false, image: null };
+  return {
+    hidden: false,
+    image: null,
+    color: null,
+    backgroundColor: null,
+    buttonColor: null,
+    ...(key === "marquee" ? { text: "", accentColor: null } : {}),
+  };
 }
 
 function emptySections(): StoreAppearance["sections"] {
@@ -156,13 +186,9 @@ function sectionEdits(sections: StoreAppearance["sections"]): AppearanceSectionE
       {
         hidden: sections[key]?.hidden ?? false,
         image: IMAGE_SECTION_KEYS.has(key) ? sectionImageOf(sections[key]?.image ?? null) : null,
+        ...Object.fromEntries(APPEARANCE_SECTION_COLOR_FIELDS.map((field) => [field, sections[key]?.[field] ?? null])),
         ...(key === "marquee"
-          ? {
-              text: sections.marquee?.text ?? null,
-              color: sections.marquee?.color ?? null,
-              accentColor: sections.marquee?.accentColor ?? null,
-              backgroundColor: sections.marquee?.backgroundColor ?? null,
-            }
+          ? { text: sections.marquee?.text ?? null, accentColor: sections.marquee?.accentColor ?? null }
           : {}),
       },
     ]),
@@ -186,17 +212,32 @@ function sectionsFrom(saved: StoreAppearance): StoreAppearance["sections"] {
     nextSections[key] = {
       hidden: savedSection?.hidden === true,
       image: savedSectionImage(savedSection?.image),
+      ...Object.fromEntries(
+        APPEARANCE_SECTION_COLOR_FIELDS.map((field) => [field, safeHex(savedSection?.[field])]),
+      ),
       ...(key === "marquee"
         ? {
             text: typeof savedSection?.text === "string" ? savedSection.text : "",
-            color: safeHex(savedSection?.color),
             accentColor: safeHex(savedSection?.accentColor),
-            backgroundColor: safeHex(savedSection?.backgroundColor),
           }
         : {}),
     };
   }
   return nextSections;
+}
+
+function safeSectionColors(value: unknown): AppearanceSectionColors {
+  const source = (value ?? {}) as Record<string, unknown>;
+  return Object.fromEntries(
+    APPEARANCE_SECTION_COLOR_FIELDS.map((field) => [field, safeHex(source[field])]),
+  ) as AppearanceSectionColors;
+}
+
+function safeChromeColors(value: unknown): AppearanceChromeColors {
+  const source = (value ?? {}) as Record<string, unknown>;
+  return Object.fromEntries(
+    APPEARANCE_CHROME_KEYS.map((key) => [key, safeSectionColors(source[key])]),
+  ) as AppearanceChromeColors;
 }
 
 function safeColorSchemes(value: unknown, fallback: AppearanceColorScheme[]): AppearanceColorScheme[] {
@@ -319,15 +360,61 @@ function ColorField({
   );
 }
 
+function SectionColorFields({
+  label,
+  sectionKey,
+  current,
+  colors,
+  onChange,
+}: {
+  label: string;
+  sectionKey?: AppearanceHomeSectionKey;
+  current: AppearanceColorScheme | undefined;
+  colors: AppearanceSectionColors;
+  onChange: (field: AppearanceSectionColorField, value: string | null) => void;
+}) {
+  const t = useT("settings");
+  const labelFor = (field: AppearanceSectionColorField) => {
+    if (sectionKey === "marquee" && field === "color") return t("store.appearance_section_marquee_color");
+    if (sectionKey === "marquee" && field === "backgroundColor") {
+      return t("store.appearance_section_marquee_background_color");
+    }
+    return `${label} — ${t(SECTION_COLOR_LABEL_KEYS[field])}`;
+  };
+  const fallback = (field: AppearanceSectionColorField) =>
+    effectiveSchemeColor(current, field === "color" ? "text" : field === "backgroundColor" ? "background" : "button");
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {APPEARANCE_SECTION_COLOR_FIELDS.map((field) => (
+        <ColorField
+          key={field}
+          label={labelFor(field)}
+          value={colors[field] ?? fallback(field)}
+          swatch={fallback(field)}
+          isAuto={!colors[field]}
+          autoLabel={t("store.appearance_color_auto")}
+          onClear={() => onChange(field, null)}
+          onChange={(value) => onChange(field, value)}
+        />
+      ))}
+    </div>
+  );
+}
+
 function AppearancePreview({
   scheme,
   detailColors,
+  sections,
+  chromeColors,
   title,
   subtitle,
   cta,
 }: {
   scheme: AppearanceColorScheme | undefined;
   detailColors: AppearanceDetailColors;
+  sections: StoreAppearance["sections"];
+  chromeColors: AppearanceChromeColors;
   title: string;
   subtitle: string;
   cta: string;
@@ -339,15 +426,48 @@ function AppearancePreview({
   const oldPrice = detailColors.oldPrice ?? autoDetailSwatch("oldPrice", scheme);
   const newPrice = detailColors.newPrice ?? autoDetailSwatch("newPrice", scheme);
   const offer = detailColors.offer ?? autoDetailColor("offer", scheme);
+  const announcement = chromeColors.announcement ?? {};
+  const headerHtml = chromeColors.headerHtml ?? {};
+  const hero = sections.hero ?? {};
+  const category = sections["category-cards"] ?? {};
+  const heroButton = hero.buttonColor ?? colors.button;
+  const categoryBg = category.backgroundColor ?? colors.background;
 
   return (
     <div className="space-y-1.5">
       <span className="text-sm font-medium text-foreground">{t("store.appearance_preview")}</span>
-      <div
-        className="rounded-xl border p-4"
-        style={{ background: colors.background, borderColor: colors.border, color: colors.text }}
-      >
-        <p className="text-base font-bold leading-snug" style={{ color: colors.heading }}>
+      <div className="overflow-hidden rounded-xl border" style={{ borderColor: colors.border }}>
+        <div
+          className="px-3 py-1.5 text-center text-[10px] font-semibold"
+          style={{ background: announcement.backgroundColor ?? colors.heading, color: announcement.color ?? colors.background }}
+        >
+          {t("store.appearance_preview_top_strip")}
+        </div>
+        <div
+          className="px-3 py-1.5 text-center text-[10px]"
+          style={{ background: headerHtml.backgroundColor ?? colors.background, color: headerHtml.color ?? colors.text }}
+        >
+          {t("store.appearance_preview_header_html")}
+        </div>
+        <div className="p-4" style={{ background: colors.background, color: colors.text }}>
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="font-semibold" style={{ color: hero.color ?? colors.heading }}>
+              {t("store.appearance_preview_hero")}
+            </span>
+            <span
+              className="rounded px-2 py-1 text-[10px] font-bold"
+              style={{ background: heroButton, color: readableOn(heroButton) }}
+            >
+              {t("store.appearance_preview_cta")}
+            </span>
+          </div>
+          <div
+            className="mt-2 rounded-md px-3 py-2 text-[10px] font-semibold"
+            style={{ background: categoryBg, color: category.color ?? colors.heading }}
+          >
+            {t("store.appearance_preview_category")}
+          </div>
+        <p className="mt-3 text-base font-bold leading-snug" style={{ color: colors.heading }}>
           {title}
         </p>
         <p className="mt-1 text-xs leading-relaxed" style={{ color: colors.text }}>
@@ -387,6 +507,7 @@ function AppearancePreview({
             {t("store.appearance_preview_secondary_cta")}
           </span>
         </div>
+        </div>
       </div>
     </div>
   );
@@ -413,6 +534,7 @@ export function AppearanceSettings() {
     logoAlignment: "right" as AppearanceLogoAlignment,
   });
   const [sections, setSections] = useState<StoreAppearance["sections"]>(emptySections);
+  const [chromeColors, setChromeColors] = useState<AppearanceChromeColors>(() => safeChromeColors({}));
   const sectionVersion = useRef(0);
 
   function applySaved(saved: StoreAppearance, initial = false, sectionsSaved = false) {
@@ -448,6 +570,7 @@ export function AppearanceSettings() {
       headerHtml: typeof saved.headerHtml === "string" ? saved.headerHtml : controls.headerHtml,
       logoAlignment: saved.logoAlignment ?? controls.logoAlignment,
     });
+    setChromeColors(safeChromeColors(saved.chromeColors));
     if (initial || sectionsSaved) setSections(sectionsFrom(saved));
   }
 
@@ -540,6 +663,10 @@ export function AppearanceSettings() {
     applySaved(await saveAppearance(payload));
   }
 
+  function updateChromeColor(key: AppearanceChromeKey, field: AppearanceSectionColorField, value: string | null) {
+    setChromeColors((all) => ({ ...all, [key]: { ...all[key], [field]: value } }));
+  }
+
   async function saveControls() {
     const payload: SaveAppearanceInput = {
       hideLogo: controls.hideLogo,
@@ -548,6 +675,7 @@ export function AppearanceSettings() {
       searchEnabled: controls.searchEnabled,
       headerHtml: controls.headerHtml,
       logoAlignment: controls.logoAlignment,
+      chromeColors,
     };
     applySaved(await saveAppearance(payload));
   }
@@ -733,6 +861,8 @@ export function AppearanceSettings() {
             <AppearancePreview
               scheme={current}
               detailColors={detailColors}
+              sections={sections}
+              chromeColors={chromeColors}
               title={previewTitle}
               subtitle={previewSubtitle}
               cta={previewCta}
@@ -816,6 +946,21 @@ export function AppearanceSettings() {
               </p>
             </Field>
           </div>
+          <div className="space-y-4 border-t border-border pt-4">
+            {APPEARANCE_CHROME_KEYS.map((key) => (
+              <div key={key} className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t(CHROME_LABEL_KEYS[key])}
+                </p>
+                <SectionColorFields
+                  label={t(CHROME_LABEL_KEYS[key])}
+                  current={current}
+                  colors={chromeColors[key] ?? {}}
+                  onChange={(field, value) => updateChromeColor(key, field, value)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </SettingsSection>
 
@@ -854,37 +999,26 @@ export function AppearanceSettings() {
                         {t("store.appearance_section_marquee_text_hint")}
                       </p>
                     </Field>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <ColorField
-                        label={t("store.appearance_section_marquee_color")}
-                        value={section?.color ?? effectiveSchemeColor(current, "heading")}
-                        swatch={effectiveSchemeColor(current, "heading")}
-                        isAuto={!section?.color}
-                        autoLabel={t("store.appearance_color_auto")}
-                        onClear={() => updateSection(key, { color: null })}
-                        onChange={(color) => updateSection(key, { color })}
-                      />
-                      <ColorField
-                        label={t("store.appearance_section_marquee_accent_color")}
-                        value={section?.accentColor ?? MARQUEE_SECOND_AUTO}
-                        swatch={MARQUEE_SECOND_AUTO}
-                        isAuto={!section?.accentColor}
-                        autoLabel={t("store.appearance_color_auto")}
-                        onClear={() => updateSection(key, { accentColor: null })}
-                        onChange={(accentColor) => updateSection(key, { accentColor })}
-                      />
-                    </div>
                     <ColorField
-                      label={t("store.appearance_section_marquee_background_color")}
-                      value={section?.backgroundColor ?? MARQUEE_BACKGROUND_AUTO}
-                      swatch={MARQUEE_BACKGROUND_AUTO}
-                      isAuto={!section?.backgroundColor}
+                      label={t("store.appearance_section_marquee_accent_color")}
+                      value={section?.accentColor ?? MARQUEE_SECOND_AUTO}
+                      swatch={MARQUEE_SECOND_AUTO}
+                      isAuto={!section?.accentColor}
                       autoLabel={t("store.appearance_color_auto")}
-                      onClear={() => updateSection(key, { backgroundColor: null })}
-                      onChange={(backgroundColor) => updateSection(key, { backgroundColor })}
+                      onClear={() => updateSection(key, { accentColor: null })}
+                      onChange={(accentColor) => updateSection(key, { accentColor })}
                     />
                   </div>
                 )}
+                <div className="mt-3 space-y-2 border-t border-border pt-3">
+                  <SectionColorFields
+                    label={label}
+                    sectionKey={key}
+                    current={current}
+                    colors={section ?? {}}
+                    onChange={(field, value) => updateSection(key, { [field]: value })}
+                  />
+                </div>
                 {IMAGE_SECTION_KEYS.has(key) && (
                   <div className="mt-3 border-t border-border pt-3">
                     <p className="mb-2 text-xs font-medium text-muted-foreground">
@@ -964,6 +1098,8 @@ export function AppearanceSettings() {
         <AppearancePreview
           scheme={current}
           detailColors={detailColors}
+          sections={sections}
+          chromeColors={chromeColors}
           title={previewTitle}
           subtitle={previewSubtitle}
           cta={previewCta}

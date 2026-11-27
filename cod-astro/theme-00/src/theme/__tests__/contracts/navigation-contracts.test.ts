@@ -116,6 +116,31 @@ describe("the header and the footer's menu", () => {
     expect(html).toMatch(/<div class="header-html"[^>]*><strong>Sale<\/strong><\/div>/);
   });
 
+  it("applies the store's header and header-strip colors without changing the scheme markers", async () => {
+    const html = await (await AstroContainer.create()).renderToString(Header, {
+      props: { ...HEADER_PROPS, storeMenu: menu },
+      locals: locals({
+        config: {
+          ...TEST_CONFIG,
+          themeSettings: {
+            headerHtml: "<strong>Sale</strong>",
+            headerTextColor: "#112233",
+            headerBackgroundColor: "#f5f5f0",
+            headerButtonColor: "#445566",
+            headerHtmlTextColor: "#778899",
+            headerHtmlBackgroundColor: "#eeeedd",
+          },
+        },
+      }),
+    });
+    expect(html).toMatch(/<header[^>]*\bstyle="[^"]*--clr-ink: #112233/);
+    expect(html).toContain("--clr-bg: #f5f5f0");
+    expect(html).toContain("--clr-primary: #445566");
+    expect(html).toMatch(/<div class="header-html"[^>]*style="[^"]*--clr-ink: #778899/);
+    expect(html).toContain("--clr-bg: #eeeedd");
+    expect(html).toContain("wc-scheme-scheme-1");
+  });
+
   it("hides only the store name when there is no logo image, leaving search and alignment alone", async () => {
     const html = await (await AstroContainer.create()).renderToString(Header, {
       props: { ...HEADER_PROPS, showSearch: true, storeMenu: null },
@@ -213,6 +238,18 @@ describe("the layout", () => {
     const html = await render({ pageData: { get: async (surface: string) => (surface === "area:header" ? header : null) } });
     expect(html).toContain("Livraison gratuite");
     expect(html).not.toContain(fr.announcementText);
+  });
+
+  it("applies the announcement strip's colors to the strip itself", async () => {
+    const html = await render({}, {
+      announcementTextColor: "#112233",
+      announcementBackgroundColor: "#f5f5f0",
+      announcementButtonColor: "#445566",
+    });
+    expect(html).toMatch(/<div class="announce[^"]*"[^>]*\bstyle="[^"]*--clr-ink: #112233/);
+    expect(html).toContain("--clr-bg: #f5f5f0");
+    expect(html).toContain("--clr-primary: #445566");
+    expect(html).toContain("wc-scheme-scheme-1");
   });
 
   it("paints the store's color schemes and faces, never an older version's colors", async () => {

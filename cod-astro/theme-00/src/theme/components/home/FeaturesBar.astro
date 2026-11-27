@@ -6,6 +6,7 @@ import type { InferProps } from "@wocart/theme";
 import { Icon } from "astro-icon/components";
 import type { StoreFrontContent } from "@/theme/content";
 import { FEATURE_ICONS, type featuresBar } from "@/theme/catalog/home/features-bar.def";
+import { homeSectionStateOf } from "@/theme/runtime/home-sections";
 import Section from "@/theme/components/ui/Section.astro";
 
 type Props = InferProps<typeof featuresBar> & { content: StoreFrontContent };
@@ -18,10 +19,11 @@ const features = [
   { icon: feature5Icon, title: content.feature5Title, sub: content.feature5Sub },
 ].filter((feature) => feature.title);
 const iconOf = (name: string) => FEATURE_ICONS[name as keyof typeof FEATURE_ICONS] ?? FEATURE_ICONS.badge;
+const section = homeSectionStateOf(Astro.locals.store, "features-bar");
 ---
 
 {features.length > 0 && (
-  <Section scheme={scheme} style={style}>
+  <Section scheme={scheme} style={style} colors={section.colors}>
     <ul class="features" style={`--count: ${features.length}`}>
       {features.map((feature) => (
         <li class="feature">

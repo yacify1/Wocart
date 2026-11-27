@@ -5,10 +5,12 @@
 // theme editor changes them and the theme's CSS never fights it — nothing
 // here sets padding or width of its own.
 import { schemeClass, styleClasses, type StyleValue } from "@wocart/theme";
+import { sectionColorStyle, type SectionColors } from "@/theme/runtime/colors";
 
 interface Props {
   scheme?: string | undefined;
   style?: StyleValue | undefined;
+  colors?: SectionColors | undefined;
   id?: string | undefined;
   /** Content edge to edge, with no frame (a full-width image). */
   bleed?: boolean;
@@ -19,11 +21,12 @@ interface Props {
   label?: string | undefined;
 }
 
-const { scheme, style, id, bleed = false, class: className, inner, as: Tag = "section", label } = Astro.props;
+const { scheme, style, colors, id, bleed = false, class: className, inner, as: Tag = "section", label } = Astro.props;
 const outer = styleClasses(style?.spacing ? { spacing: style.spacing } : undefined);
 const width = styleClasses(style?.size ? { size: style.size } : undefined);
+const colorStyle = colors ? sectionColorStyle(colors) : "";
 ---
 
-<Tag id={id} class:list={["section", schemeClass(scheme), outer, className]} aria-label={label}>
+<Tag id={id} class:list={["section", schemeClass(scheme), outer, className]} style={colorStyle || undefined} aria-label={label}>
   {bleed ? <slot /> : <div class:list={["frame", width, inner]}><slot /></div>}
 </Tag>

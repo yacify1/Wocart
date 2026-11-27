@@ -13,6 +13,7 @@ import Section from "@/theme/components/ui/Section.astro";
 import Countdown from "@/theme/components/ui/Countdown.astro";
 import { countdownTarget } from "@wocart/storefront";
 import { homeSectionStateOf } from "@/theme/runtime/home-sections";
+import { sectionColorStyle } from "@/theme/runtime/colors";
 import { pickedPicture } from "@/theme/utils/images";
 
 type Props = InferProps<typeof imageBanner> & {
@@ -33,7 +34,7 @@ const units = { days: content.countdownDays, hours: content.countdownHours, minu
 ---
 
 <Section style={style}>
-  <div class:list={["banner", schemeClass(scheme), photo ? "has-photo" : "no-photo", imageSide === "start" && "photo-start"]}>
+  <div class:list={["banner", schemeClass(scheme), photo ? "has-photo" : "no-photo", imageSide === "start" && "photo-start"]} style={sectionColorStyle(section.colors) || undefined}>
     {photo && (
       <div class="banner-photo">
         <Image

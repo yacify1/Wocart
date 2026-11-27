@@ -76,6 +76,7 @@ const { fieldErrors, notice, couponRefusal } = orderOutcome(Astro.getActionResul
     font-weight: 800;
     transition: transform 0.25s ease, opacity 0.25s ease;
   }
+  :global(body.has-mobile-nav) .lp-sticky-cta { bottom: calc(4rem + var(--safe-bottom) + 0.75rem); }
   .lp-sticky-cta.is-hidden {
     transform: translateY(150%);
     opacity: 0;

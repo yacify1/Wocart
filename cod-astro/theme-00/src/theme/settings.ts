@@ -12,9 +12,20 @@
  * section hide/photo switches are written by the dashboard's Appearance tab;
  * declaring them here lets the same renderer read and validate them.
  */
-import type { SettingsGroup } from "@wocart/theme";
+import type { LocalizedText, SettingsGroup } from "@wocart/theme";
 import { BODY_FONT, CARD_RATIOS, CORNERS, DEFAULT_SCHEMES, FONT_FAMILIES, HEADING_FONT, PAGE_SCHEME } from "./appearance";
 import { HOME_SETTING, OPTION, SETTING, SETTINGS_GROUP } from "./catalog/labels";
+
+const colorField = (key: string, label: LocalizedText) => ({ key, kind: "color" as const, label });
+const sectionColorFields = (
+  prefix: string,
+  labels: { color: LocalizedText; backgroundColor: LocalizedText; buttonColor: LocalizedText },
+  colorKey = `${prefix}TextColor`,
+) => [
+  colorField(colorKey, labels.color),
+  colorField(`${prefix}BackgroundColor`, labels.backgroundColor),
+  colorField(`${prefix}ButtonColor`, labels.buttonColor),
+];
 
 export const THEME_SETTINGS = [
   {
@@ -78,6 +89,15 @@ export const THEME_SETTINGS = [
       { key: "searchEnabled", kind: "boolean", label: SETTING.searchEnabled, default: true },
       { key: "hideHeroImages", kind: "boolean", label: SETTING.hideHeroImages, default: false },
       { key: "headerHtml", kind: "textarea", label: SETTING.headerHtml, default: "" },
+      colorField("announcementTextColor", SETTING.announcementTextColor),
+      colorField("announcementBackgroundColor", SETTING.announcementBackgroundColor),
+      colorField("announcementButtonColor", SETTING.announcementButtonColor),
+      colorField("headerTextColor", SETTING.headerTextColor),
+      colorField("headerBackgroundColor", SETTING.headerBackgroundColor),
+      colorField("headerButtonColor", SETTING.headerButtonColor),
+      colorField("headerHtmlTextColor", SETTING.headerHtmlTextColor),
+      colorField("headerHtmlBackgroundColor", SETTING.headerHtmlBackgroundColor),
+      colorField("headerHtmlButtonColor", SETTING.headerHtmlButtonColor),
       {
         key: "logoAlignment",
         kind: "select",
@@ -95,24 +115,30 @@ export const THEME_SETTINGS = [
     fields: [
       { key: "homeHeroHidden", kind: "boolean", label: HOME_SETTING.hero.hidden, default: false },
       { key: "homeHeroImage", kind: "image", label: HOME_SETTING.hero.image },
+      ...sectionColorFields("homeHero", HOME_SETTING.hero),
       { key: "homeMarqueeHidden", kind: "boolean", label: HOME_SETTING.marquee.hidden, default: false },
       { key: "homeMarqueeImage", kind: "image", label: HOME_SETTING.marquee.image },
       { key: "homeMarqueeText", kind: "textarea", label: HOME_SETTING.marquee.text, default: "" },
-      { key: "homeMarqueeColor", kind: "color", label: HOME_SETTING.marquee.color },
+      ...sectionColorFields("homeMarquee", HOME_SETTING.marquee, "homeMarqueeColor"),
       { key: "homeMarqueeAccentColor", kind: "color", label: HOME_SETTING.marquee.accentColor },
-      { key: "homeMarqueeBackgroundColor", kind: "color", label: HOME_SETTING.marquee.backgroundColor },
       { key: "homeCategoryCardsHidden", kind: "boolean", label: HOME_SETTING["category-cards"].hidden, default: false },
       { key: "homeCategoryCardsImage", kind: "image", label: HOME_SETTING["category-cards"].image },
+      ...sectionColorFields("homeCategoryCards", HOME_SETTING["category-cards"]),
       { key: "homeProductTabsHidden", kind: "boolean", label: HOME_SETTING["product-tabs"].hidden, default: false },
       { key: "homeProductTabsImage", kind: "image", label: HOME_SETTING["product-tabs"].image },
+      ...sectionColorFields("homeProductTabs", HOME_SETTING["product-tabs"]),
       { key: "homeImageBannerHidden", kind: "boolean", label: HOME_SETTING["image-banner"].hidden, default: false },
       { key: "homeImageBannerImage", kind: "image", label: HOME_SETTING["image-banner"].image },
+      ...sectionColorFields("homeImageBanner", HOME_SETTING["image-banner"]),
       { key: "homeHowItWorksHidden", kind: "boolean", label: HOME_SETTING["how-it-works"].hidden, default: false },
       { key: "homeHowItWorksImage", kind: "image", label: HOME_SETTING["how-it-works"].image },
+      ...sectionColorFields("homeHowItWorks", HOME_SETTING["how-it-works"]),
       { key: "homeCustomerTestimonialsHidden", kind: "boolean", label: HOME_SETTING["customer-testimonials"].hidden, default: false },
       { key: "homeCustomerTestimonialsImage", kind: "image", label: HOME_SETTING["customer-testimonials"].image },
+      ...sectionColorFields("homeCustomerTestimonials", HOME_SETTING["customer-testimonials"]),
       { key: "homeFeaturesBarHidden", kind: "boolean", label: HOME_SETTING["features-bar"].hidden, default: false },
       { key: "homeFeaturesBarImage", kind: "image", label: HOME_SETTING["features-bar"].image },
+      ...sectionColorFields("homeFeaturesBar", HOME_SETTING["features-bar"]),
     ],
   },
 ] as const satisfies readonly SettingsGroup[];

@@ -4,12 +4,14 @@
 import type { InferProps } from "@wocart/theme";
 import type { StoreFrontContent } from "@/theme/content";
 import type { howItWorks } from "@/theme/catalog/home/how-it-works.def";
+import { homeSectionStateOf } from "@/theme/runtime/home-sections";
 import Section from "@/theme/components/ui/Section.astro";
 import SectionHead from "@/theme/components/ui/SectionHead.astro";
 
 type Props = Pick<InferProps<typeof howItWorks>, "scheme" | "style"> & { content: StoreFrontContent };
 
 const { content, scheme, style } = Astro.props;
+const section = homeSectionStateOf(Astro.locals.store, "how-it-works");
 const steps = [
   { title: content.howStep1Title, sub: content.howStep1Sub },
   { title: content.howStep2Title, sub: content.howStep2Sub },
@@ -17,7 +19,7 @@ const steps = [
 ].filter((step) => step.title);
 ---
 
-<Section scheme={scheme} style={style}>
+<Section scheme={scheme} style={style} colors={section.colors}>
   <SectionHead title={content.howItWorksTitle} sub={content.howItWorksSub} center />
   <ol class="steps">
     {steps.map((step, index) => (

@@ -2,6 +2,7 @@ import type { MediaImage } from "../../../../cod-shared/media/model";
 import type { StoreLocale } from "../../../../cod-shared/i18n/locales";
 import type { LocaleRow, StoreLanguage } from "../../../../cod-shared/stores/settings";
 import type {
+  AppearanceChromeColors,
   AppearanceColorScheme,
   AppearanceDetailColors,
   AppearanceHomeSectionKey,
@@ -89,8 +90,10 @@ export interface StoreAppearance {
       color?: string | null;
       accentColor?: string | null;
       backgroundColor?: string | null;
+      buttonColor?: string | null;
     }
   >;
+  chromeColors: AppearanceChromeColors;
   detailColors: AppearanceDetailColors;
   /** Saved text edits, `{ ar: { heroTitle: "…" } }`. */
   texts: Partial<Record<StoreLocale, Record<string, string>>>;

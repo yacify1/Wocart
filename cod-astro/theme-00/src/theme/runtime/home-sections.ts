@@ -7,6 +7,7 @@
  */
 import type { StoreContext } from "./store";
 import { settingsOf } from "./settings";
+import { sectionColorsOf, type SectionColors } from "./colors";
 import { pickedPicture } from "@/theme/utils/images";
 import type { PickedImage, Picture } from "@wocart/storefront";
 
@@ -34,11 +35,15 @@ const CAMEL: Record<HomeSectionType, string> = {
   "features-bar": "FeaturesBar",
 };
 
-export const hiddenSettingKey = (type: HomeSectionType): string => `home${CAMEL[type]}Hidden`;
-export const imageSettingKey = (type: HomeSectionType): string => `home${CAMEL[type]}Image`;
+export const sectionSettingPrefix = (type: HomeSectionType): string => `home${CAMEL[type]}`;
+
+export const hiddenSettingKey = (type: HomeSectionType): string => `${sectionSettingPrefix(type)}Hidden`;
+export const imageSettingKey = (type: HomeSectionType): string => `${sectionSettingPrefix(type)}Image`;
 
 /** Only these two sections draw their picked photo themselves; the rest wear it as a backdrop. */
 export const NATIVE_IMAGE_SECTIONS = new Set<HomeSectionType>(["hero", "image-banner"]);
+
+const NO_COLORS: SectionColors = { color: null, backgroundColor: null, buttonColor: null };
 
 export function homeSectionTypeOf(type: string): HomeSectionType | null {
   return (HOME_SECTION_TYPES as readonly string[]).includes(type) ? (type as HomeSectionType) : null;
@@ -48,6 +53,7 @@ export type HomeSectionState = {
   hidden: boolean;
   image: Picture | null;
   picked: PickedImage | null;
+  colors: SectionColors;
 };
 
 export type MarqueeSettings = {
@@ -55,6 +61,7 @@ export type MarqueeSettings = {
   color: string | null;
   accentColor: string | null;
   backgroundColor: string | null;
+  buttonColor: string | null;
 };
 
 const MARQUEE_TAGS = new Set(["a", "b", "strong", "i", "em", "u", "small", "span", "br"]);
@@ -118,13 +125,14 @@ export function marqueeSettingsOf(store: StoreContext): MarqueeSettings {
     color: hex(color),
     accentColor: hex(accentColor),
     backgroundColor: hex(backgroundColor),
+    buttonColor: sectionColorsOf(store, "homeMarquee", "homeMarqueeColor").buttonColor,
   };
 }
 
 /** One home section's visibility and photo, for the page and the section components alike. */
 export function homeSectionStateOf(store: StoreContext, type: string): HomeSectionState {
   const key = homeSectionTypeOf(type);
-  if (!key) return { hidden: false, image: null, picked: null };
+  if (!key) return { hidden: false, image: null, picked: null, colors: NO_COLORS };
   const values = settingsOf(store) as unknown as Record<string, unknown>;
   const stored = (store.config.themeSettings ?? {}) as Record<string, unknown>;
   const hiddenKey = hiddenSettingKey(key);
@@ -134,5 +142,6 @@ export function homeSectionStateOf(store: StoreContext, type: string): HomeSecti
     !Object.prototype.hasOwnProperty.call(stored, hiddenKey);
   const hidden = values[hiddenKey] === true || legacy;
   const picked = (values[imageSettingKey(key)] as PickedImage | undefined) ?? null;
-  return { hidden, image: pickedPicture(picked, store.config.media), picked };
+  const colors = sectionColorsOf(store, sectionSettingPrefix(key), key === "marquee" ? "homeMarqueeColor" : undefined);
+  return { hidden, image: pickedPicture(picked, store.config.media), picked, colors };
 }

@@ -24,7 +24,7 @@ const focus = own?.position ?? "50% 55%";
 ---
 
 {!section.hidden && (
-  <Section scheme={scheme} style={style} bleed>
+  <Section scheme={scheme} style={style} colors={section.colors} bleed>
     <div class:list={["hero-grid", photo ? "has-photo" : "no-photo", photoSide === "start" && "photo-start"]}>
       {photo && (
         <div class="hero-photo">

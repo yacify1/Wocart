@@ -11,6 +11,7 @@ import { isPreview, type BlocksHandle } from "@wocart/theme/astro";
 import { Icon } from "astro-icon/components";
 import type { StoreFrontContent } from "@/theme/content";
 import type { categoryCards } from "@/theme/catalog/home/category-cards.def";
+import { homeSectionStateOf } from "@/theme/runtime/home-sections";
 import Section from "@/theme/components/ui/Section.astro";
 import SectionHead from "@/theme/components/ui/SectionHead.astro";
 import { imageSource, imageSrcset } from "@/theme/utils/images";
@@ -25,6 +26,7 @@ type Props = InferProps<typeof categoryCards> & {
 
 const { blocks, categories, products = [], content, limit, showAll, headingAlign, scheme, style } = Astro.props;
 const store = Astro.locals.store;
+const section = homeSectionStateOf(store, "category-cards");
 
 type TilePhoto = { url: string; width: number | null; height: number | null };
 
@@ -48,7 +50,7 @@ const tiles = shown.length + (showAll ? 1 : 0);
 ---
 
 {(shown.length > 0 || isPreview(blocks)) && (
-  <Section scheme={scheme} style={style}>
+  <Section scheme={scheme} style={style} colors={section.colors}>
     <SectionHead title={content.categoriesSection} center={headingAlign === "center"} />
     <ul class="category-tiles swipe-row" style={`--tiles: ${Math.min(tiles, 5)}`}>
       {shown.map((category) => {
@@ -99,8 +101,8 @@ const tiles = shown.length + (showAll ? 1 : 0);
       {showAll && (
         <li>
           <a href={store.href(storefrontPath("catalog"))} class="category-tile category-all">
-            <span class="category-all-name">{content.allProductsSection}</span>
             <span class="category-all-go" aria-hidden="true"><Icon name="heroicons:arrow-up-left" /></span>
+            <span class="category-chip category-all-name">{content.allProductsSection}</span>
           </a>
         </li>
       )}
@@ -113,13 +115,17 @@ const tiles = shown.length + (showAll ? 1 : 0);
     --tile-max: 16rem;
     --tile-gap: 1.25rem;
     grid-auto-columns: minmax(0, 46%);
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+    padding-bottom: 1rem;
     list-style: none;
   }
-  .category-tiles > li { width: 100%; max-width: var(--tile-max); justify-self: center; }
+  .category-tiles > li { display: flex; width: 100%; max-width: var(--tile-max); justify-self: center; }
   @media (min-width: 640px) { .category-tiles { grid-auto-columns: minmax(0, 30%); } }
   @media (min-width: 1024px) {
     .category-tiles {
       grid-auto-flow: row;
+      grid-auto-rows: auto;
       grid-template-columns: repeat(var(--tiles), minmax(0, 1fr));
       width: min(100%, calc(var(--tiles) * var(--tile-max) + (var(--tiles) - 1) * var(--tile-gap)));
       gap: var(--tile-gap);
@@ -128,7 +134,7 @@ const tiles = shown.length + (showAll ? 1 : 0);
       overflow: visible;
     }
   }
-  .category-tile { display: block; width: 100%; aspect-ratio: 4 / 5; color: var(--clr-ink); text-decoration: none; }
+  .category-tile { display: block; width: 100%; height: 100%; min-height: 0; aspect-ratio: 4 / 5; color: var(--clr-ink); text-decoration: none; }
   .category-tile > :global(img) {
     display: block;
     width: 100%;
@@ -163,6 +169,7 @@ const tiles = shown.length + (showAll ? 1 : 0);
     position: absolute;
     inset-inline-start: 0.875rem;
     bottom: 0.875rem;
+    display: -webkit-box;
     max-width: calc(100% - 1.75rem);
     padding: 0.5rem 1rem;
     overflow: hidden;
@@ -172,21 +179,23 @@ const tiles = shown.length + (showAll ? 1 : 0);
     color: var(--clr-ink);
     font-size: var(--text-sm);
     font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    text-align: start;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
   .category-all {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 1.375rem;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
     border: 1px solid var(--clr-ink);
     border-radius: var(--radius-media);
     transition: background-color 0.3s ease, color 0.3s ease;
   }
   .category-all:hover { background: var(--clr-ink); color: var(--clr-bg); }
-  .category-all-name { font-family: var(--font-heading); font-size: var(--text-2xl); line-height: 1.35; }
+  .category-all-name { font-family: var(--font-heading); font-size: var(--text-base); }
   .category-all-go {
     display: inline-flex;
     width: 3.5rem;

@@ -6,6 +6,7 @@ import Blocks from "@wocart/theme/astro/Blocks.astro";
 import { hasBlocks, isPreview, type BlocksHandle } from "@wocart/theme/astro";
 import { schemeClass } from "@wocart/theme";
 import { Icon } from "astro-icon/components";
+import { sectionColorStyle, sectionColorsOf } from "@/theme/runtime/colors";
 
 interface Props {
   blocks: BlocksHandle;
@@ -14,12 +15,16 @@ interface Props {
 }
 
 const { blocks, scheme, autoplay = true } = Astro.props;
-const content = Astro.locals.store.content;
+const store = Astro.locals.store;
+const content = store.content;
 const shown = hasBlocks(blocks, "default") || isPreview(blocks);
+const style = ["padding-top: var(--safe-top)", sectionColorStyle(sectionColorsOf(store, "announcement"))]
+  .filter(Boolean)
+  .join("; ");
 ---
 
 {shown && (
-  <div class:list={["announce", schemeClass(scheme)]} data-announce data-autoplay={autoplay ? "" : undefined} style="padding-top: var(--safe-top)">
+  <div class:list={["announce", schemeClass(scheme)]} data-announce data-autoplay={autoplay ? "" : undefined} style={style}>
     <div class="announce-inner frame">
       <button type="button" class="announce-turn" data-announce-step="-1" aria-label={content.announcePrevious} hidden>
         <Icon name="heroicons:chevron-left" class="flip-rtl" aria-hidden="true" />
@@ -89,7 +94,7 @@ const shown = hasBlocks(blocks, "default") || isPreview(blocks);
     min-height: 2.5rem;
   }
   .announce-track { flex: 1; min-width: 0; display: grid; }
-  .announce-track :global(.announce-item) { grid-area: 1 / 1; padding-block: 0.5rem; }
+  .announce-track :global(.announce-item) { grid-area: 1 / 1; min-width: 0; padding-block: 0.5rem; overflow-wrap: anywhere; }
   .announce-track :global(.announce-item ~ .announce-item) { visibility: hidden; }
   .announce[data-ready] .announce-track :global(.announce-item) { visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; }
   .announce[data-ready] .announce-track :global(.announce-item[data-active]) { visibility: visible; opacity: 1; }

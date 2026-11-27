@@ -13,6 +13,7 @@ import { isPreview, type BlocksHandle } from "@wocart/theme/astro";
 import { Icon } from "astro-icon/components";
 import type { StoreFrontContent } from "@/theme/content";
 import type { customerTestimonials } from "@/theme/catalog/home/customer-testimonials.def";
+import { homeSectionStateOf } from "@/theme/runtime/home-sections";
 import Section from "@/theme/components/ui/Section.astro";
 import SectionHead from "@/theme/components/ui/SectionHead.astro";
 
@@ -24,10 +25,11 @@ type Props = Pick<InferProps<typeof customerTestimonials>, "headingAlign" | "sch
 
 const { items, content, headingAlign, scheme, style, blocks } = Astro.props;
 const store = Astro.locals.store;
+const section = homeSectionStateOf(store, "customer-testimonials");
 ---
 
 {items.length > 0 && (
-  <Section scheme={scheme} style={style}>
+  <Section scheme={scheme} style={style} colors={section.colors}>
     <SectionHead title={content.testimonialsTitle} sub={content.testimonialsSub} center={headingAlign === "center"} />
     <ul class="quotes swipe-row">
       {items.map(({ review, product }) => (
@@ -57,7 +59,7 @@ const store = Astro.locals.store;
   </Section>
 )}
 {items.length === 0 && isPreview(blocks) && (
-  <Section scheme={scheme} style={style}>
+  <Section scheme={scheme} style={style} colors={section.colors}>
     <SectionHead title={content.testimonialsTitle} sub={content.testimonialsSub} center={headingAlign === "center"} />
     <ul class="quotes swipe-row is-ghost" aria-hidden="true">
       {[1, 2, 3].map(() => (

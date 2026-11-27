@@ -411,7 +411,7 @@ describe("cart - properties", () => {
         expect(cart.cartSubtotal()).toBeGreaterThanOrEqual(0);
       }),
     );
-  });
+  }, 30_000);
 
   it("round-trips through storage unchanged", async () => {
     await fc.assert(

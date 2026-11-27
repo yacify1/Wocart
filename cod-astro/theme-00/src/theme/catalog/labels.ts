@@ -271,6 +271,15 @@ export const SETTING = {
   searchEnabled: text("تفعيل البحث", "Activer la recherche", "Enable search"),
   hideHeroImages: text("إخفاء صور البانر", "Masquer les photos des bannières", "Hide hero & banner photos"),
   headerHtml: text("HTML أعلى الرأس", "HTML au-dessus de l’en-tête", "Header HTML"),
+  announcementTextColor: text("لون نص شريط الإعلانات", "Couleur du texte de la barre d’annonces", "Announcement text color"),
+  announcementBackgroundColor: text("لون خلفية شريط الإعلانات", "Couleur de fond de la barre d’annonces", "Announcement background color"),
+  announcementButtonColor: text("لون أزرار شريط الإعلانات", "Couleur des boutons de la barre d’annonces", "Announcement button color"),
+  headerTextColor: text("لون نص الرأس", "Couleur du texte de l’en-tête", "Header text color"),
+  headerBackgroundColor: text("لون خلفية الرأس", "Couleur de fond de l’en-tête", "Header background color"),
+  headerButtonColor: text("لون أزرار الرأس", "Couleur des boutons de l’en-tête", "Header button color"),
+  headerHtmlTextColor: text("لون نص شريط HTML", "Couleur du texte du HTML de l’en-tête", "Header HTML text color"),
+  headerHtmlBackgroundColor: text("لون خلفية شريط HTML", "Couleur de fond du HTML de l’en-tête", "Header HTML background color"),
+  headerHtmlButtonColor: text("لون أزرار شريط HTML", "Couleur des boutons du HTML de l’en-tête", "Header HTML button color"),
   logoAlignment: text("محاذاة الشعار", "Alignement du logo", "Logo alignment"),
 };
 
@@ -301,9 +310,20 @@ const marqueeBackgroundOf = (label: LocalizedText): LocalizedText => {
   const { ar, fr, en } = partsOf(label);
   return { ar: `لون خلفية ${ar}`, fr: `Couleur de fond de ${fr}`, en: `${en} background color` };
 };
+const sectionColorOf = (label: LocalizedText, role: "text" | "background" | "button"): LocalizedText => {
+  const { ar, fr, en } = partsOf(label);
+  if (role === "text") return { ar: `لون نص ${ar}`, fr: `Couleur du texte de ${fr}`, en: `${en} text color` };
+  if (role === "background") return { ar: `لون خلفية ${ar}`, fr: `Couleur de fond de ${fr}`, en: `${en} background color` };
+  return { ar: `لون زر ${ar}`, fr: `Couleur du bouton de ${fr}`, en: `${en} button color` };
+};
+const colorControlsOf = (label: LocalizedText) => ({
+  color: sectionColorOf(label, "text"),
+  backgroundColor: sectionColorOf(label, "background"),
+  buttonColor: sectionColorOf(label, "button"),
+});
 
 export const HOME_SETTING = {
-  hero: { hidden: hideOf(SECTION.hero), image: imageOf(SECTION.hero) },
+  hero: { hidden: hideOf(SECTION.hero), image: imageOf(SECTION.hero), ...colorControlsOf(SECTION.hero) },
   marquee: {
     hidden: hideOf(SECTION.marquee),
     image: imageOf(SECTION.marquee),
@@ -311,13 +331,38 @@ export const HOME_SETTING = {
     color: marqueeColorOf(SECTION.marquee),
     accentColor: sparkleColorOf(SECTION.marquee),
     backgroundColor: marqueeBackgroundOf(SECTION.marquee),
+    buttonColor: sectionColorOf(SECTION.marquee, "button"),
   },
-  "category-cards": { hidden: hideOf(SECTION.categoryCards), image: imageOf(SECTION.categoryCards) },
-  "product-tabs": { hidden: hideOf(SECTION.productTabs), image: imageOf(SECTION.productTabs) },
-  "image-banner": { hidden: hideOf(SECTION.imageBanner), image: imageOf(SECTION.imageBanner) },
-  "how-it-works": { hidden: hideOf(SECTION.howItWorks), image: imageOf(SECTION.howItWorks) },
-  "customer-testimonials": { hidden: hideOf(SECTION.customerTestimonials), image: imageOf(SECTION.customerTestimonials) },
-  "features-bar": { hidden: hideOf(SECTION.featuresBar), image: imageOf(SECTION.featuresBar) },
+  "category-cards": {
+    hidden: hideOf(SECTION.categoryCards),
+    image: imageOf(SECTION.categoryCards),
+    ...colorControlsOf(SECTION.categoryCards),
+  },
+  "product-tabs": {
+    hidden: hideOf(SECTION.productTabs),
+    image: imageOf(SECTION.productTabs),
+    ...colorControlsOf(SECTION.productTabs),
+  },
+  "image-banner": {
+    hidden: hideOf(SECTION.imageBanner),
+    image: imageOf(SECTION.imageBanner),
+    ...colorControlsOf(SECTION.imageBanner),
+  },
+  "how-it-works": {
+    hidden: hideOf(SECTION.howItWorks),
+    image: imageOf(SECTION.howItWorks),
+    ...colorControlsOf(SECTION.howItWorks),
+  },
+  "customer-testimonials": {
+    hidden: hideOf(SECTION.customerTestimonials),
+    image: imageOf(SECTION.customerTestimonials),
+    ...colorControlsOf(SECTION.customerTestimonials),
+  },
+  "features-bar": {
+    hidden: hideOf(SECTION.featuresBar),
+    image: imageOf(SECTION.featuresBar),
+    ...colorControlsOf(SECTION.featuresBar),
+  },
 };
 
 /** The theme's default color schemes, as the editor names them. */
