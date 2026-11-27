@@ -348,6 +348,84 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[0]!.texts).toBeUndefined();
   });
 
+  it("hides and restores the scrolling band in the live preview", async () => {
+    await render();
+    expect(host.querySelector("[data-preview-marquee-track]")).toBeTruthy();
+    const card = section("store.appearance_sections_title");
+    const toggle = [...card.querySelectorAll<HTMLButtonElement>('[role="switch"]')].find((node) =>
+      node.parentElement?.textContent?.includes("store.appearance_section_marquee"),
+    )!;
+
+    await click(toggle);
+    expect(host.querySelector("[data-preview-marquee-track]")).toBeNull();
+
+    await click(toggle);
+    expect(host.querySelector("[data-preview-marquee-track]")).toBeTruthy();
+  });
+
+  it("hides and restores every home section in the live preview", async () => {
+    await render();
+    const preview = host.querySelector("aside")!;
+    for (const key of ["product-tabs", "how-it-works", "customer-testimonials", "features-bar"]) {
+      expect(preview.textContent).toContain(`store.appearance_section_${key}`);
+    }
+
+    const card = section("store.appearance_sections_title");
+    const toggle = [...card.querySelectorAll<HTMLButtonElement>('[role="switch"]')].find((node) =>
+      node.parentElement?.textContent?.includes("store.appearance_section_features-bar"),
+    )!;
+    await click(toggle);
+    expect(host.querySelector("aside")!.textContent).not.toContain("store.appearance_section_features-bar");
+
+    await click(
+      [...section("store.appearance_sections_title").querySelectorAll<HTMLButtonElement>('[role="switch"]')].find(
+        (node) => node.parentElement?.textContent?.includes("store.appearance_section_features-bar"),
+      )!,
+    );
+    expect(host.querySelector("aside")!.textContent).toContain("store.appearance_section_features-bar");
+  });
+
+  it("saves and previews the contact strip's visibility and direction", async () => {
+    seam.appearance = {
+      ...appearance(),
+      primaryLocale: "ar",
+      contact: { contactPhone: "tel:+21355123456" },
+    };
+    await render();
+    const toggleFor = (label: string) =>
+      [...section("store.appearance_storefront_title").querySelectorAll<HTMLButtonElement>('[role="switch"]')].find(
+        (node) => node.parentElement?.textContent?.includes(label),
+      )!;
+    const selectFor = (label: string) =>
+      (Array.from(section("store.appearance_storefront_title").querySelectorAll("select")) as HTMLSelectElement[]).find(
+        (node) => node.parentElement?.parentElement?.textContent?.includes(label),
+      )!;
+
+    await click(toggleFor("store.appearance_control_showHeaderHtml"));
+    await click(toggleFor("store.appearance_control_showContactLinks"));
+    const preview = host.querySelector("aside")!;
+    expect(preview.textContent).not.toContain("store.appearance_preview_header_html");
+    expect(preview.textContent).not.toContain("store.appearance_group_contact");
+
+    await setValue(selectFor("store.appearance_control_contactAlignment"), "left", "change");
+    await setValue(selectFor("store.appearance_control_contactLayout"), "column", "change");
+    await click(saveButton(section("store.appearance_storefront_title")));
+    expect(seam.calls[0]).toMatchObject({
+      showHeaderHtml: false,
+      showContactLinks: false,
+      contactAlignment: "left",
+      contactLayout: "column",
+    });
+
+    await click(toggleFor("store.appearance_control_showContactLinks"));
+    const previewContact = [...host.querySelectorAll<HTMLElement>("[dir]")].find((node) =>
+      node.textContent?.includes("store.appearance_contact_phone"),
+    )!;
+    expect(previewContact.getAttribute("dir")).toBe("rtl");
+    expect(previewContact.getAttribute("style")).toContain("flex-direction: column");
+    expect(previewContact.getAttribute("style")).toContain("align-items: flex-end");
+  });
+
   it("saves text edits without touching colors or storefront controls", async () => {
     await render();
     const label = [...host.querySelectorAll("label")].find((node) =>

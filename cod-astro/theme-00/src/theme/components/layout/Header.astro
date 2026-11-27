@@ -22,7 +22,7 @@ type Props = InferProps<typeof header> & { storeMenu: StoreMenu | null };
 const { storeMenu, logoPosition, logoWidth, sticky, showSearch, showLanguage, scheme } = Astro.props;
 const store = Astro.locals.store;
 const { config, content } = store;
-const { hideLogo, hideHeaderText, hideMenu, searchEnabled, headerHtml, logoAlignment, contactPhone, contactEmail, instagramUrl, facebookUrl, tiktokUrl } = settingsOf(store);
+const { hideLogo, hideHeaderText, hideMenu, searchEnabled, headerHtml, showHeaderHtml, showContactLinks, logoAlignment, contactAlignment, contactLayout, contactPhone, contactEmail, instagramUrl, facebookUrl, tiktokUrl } = settingsOf(store);
 const headerColors = sectionColorsOf(store, "header");
 const headerHtmlColors = sectionColorsOf(store, "headerHtml");
 const whatsapp = storeWhatsApp(
@@ -46,6 +46,8 @@ const contactLinks = rawContactLinks
     href: link.href.startsWith("/") && !link.href.startsWith("//") ? store.href(link.href) : link.href,
     external: /^https?:\/\//i.test(link.href),
   }));
+const visibleHeaderHtml = showHeaderHtml ? headerHtml : undefined;
+const visibleContactLinks = showContactLinks ? contactLinks : [];
 const links = hideMenu ? [] : menuLinks(storeMenu, store.href, store.pathname) ?? [];
 const centered = logoPosition === "center";
 const showLogo = !hideLogo && (Boolean(config.logo) || !hideHeaderText);
@@ -57,12 +59,17 @@ const headerStyle = [`--logo-w: ${logoWidth}px`, sectionColorStyle(headerColors)
   data-logo-align={logoAlignment}
   style={headerStyle}
 >
-  {(headerHtml || contactLinks.length > 0) && (
+  {(visibleHeaderHtml || visibleContactLinks.length > 0) && (
     <div class="header-html" style={sectionColorStyle(headerHtmlColors) || undefined}>
-      {headerHtml && <Fragment set:html={headerHtml} />}
-      {contactLinks.length > 0 && (
-        <nav class:list={["header-contact", "flex-row", "items-center", "gap-1.5"]} aria-label={content.contactLinks}>
-          {contactLinks.map((link) => (
+      {visibleHeaderHtml && <Fragment set:html={visibleHeaderHtml} />}
+      {visibleContactLinks.length > 0 && (
+        <nav
+          class:list={["header-contact", "flex-row", "items-center", "gap-1.5"]}
+          data-contact-align={contactAlignment}
+          data-contact-layout={contactLayout}
+          aria-label={content.contactLinks}
+        >
+          {visibleContactLinks.map((link) => (
             <a href={link.href} aria-label={link.label} rel={link.external ? "noopener" : undefined}>
               <span class="contact-icon" aria-hidden="true">
                 {link.icon === "phone" && <Icon name="heroicons:phone" />}
@@ -201,7 +208,6 @@ const headerStyle = [`--logo-w: ${logoWidth}px`, sectionColorStyle(headerColors)
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
-    justify-content: flex-start;
     justify-content: safe center;
     gap: 0.375rem;
     width: 100%;
@@ -210,6 +216,25 @@ const headerStyle = [`--logo-w: ${logoWidth}px`, sectionColorStyle(headerColors)
     overflow-x: auto;
     scrollbar-width: none;
   }
+  .header-contact[data-contact-align="left"] { justify-content: flex-start; }
+  .header-contact[data-contact-align="right"] { justify-content: flex-end; }
+  [dir="rtl"] .header-contact[data-contact-align="left"] { justify-content: flex-end; }
+  [dir="rtl"] .header-contact[data-contact-align="right"] { justify-content: flex-start; }
+  .header-contact[data-contact-layout="column"] {
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow-x: visible;
+  }
+  .header-contact[data-contact-layout="column"][data-contact-align="center"] {
+    align-items: center;
+    justify-content: center;
+  }
+  .header-contact[data-contact-layout="column"][data-contact-align="left"] { align-items: flex-start; }
+  .header-contact[data-contact-layout="column"][data-contact-align="right"] { align-items: flex-end; }
+  [dir="rtl"] .header-contact[data-contact-layout="column"][data-contact-align="left"] { align-items: flex-end; }
+  [dir="rtl"] .header-contact[data-contact-layout="column"][data-contact-align="right"] { align-items: flex-start; }
   .header-contact::-webkit-scrollbar { display: none; }
   .header-contact a {
     display: inline-flex;

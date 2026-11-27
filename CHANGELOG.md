@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   address and Instagram, Facebook or TikTok profile. Each saved detail becomes
   a safe, clickable action in the reference theme's header strip; an empty
   field hides its button.
+- Contact actions can be aligned left, right or center and laid out in a row or
+  a column; left and right follow the store's language direction. Separate
+  switches hide the saved header HTML strip and the contact actions without
+  deleting their content. The live preview and the reference theme follow the
+  same settings.
 
 ### Changed
 
@@ -87,6 +92,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- On phones, category cards form one horizontally scrolling, snap-aligned row
+  that follows the store's direction instead of a cramped two-column grid; the
+  row keeps room for the bottom navigation. The scrolling text band stays on
+  one line, pauses on hover, and stops for shoppers who prefer reduced motion;
+  hiding it in Appearance removes it immediately from the preview and storefront.
 - A Hero picture uploaded in Appearance is saved as soon as the upload completes
   and no longer raises a second success toast. The appearance API accepts a
   hero-only section save, so the upload no longer fails validation or leaves

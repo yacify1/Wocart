@@ -23,6 +23,23 @@ describe("appearance save schema", () => {
     expect(() => saveAppearanceSchema.parse({ contact: { twitterUrl: "https://x.test" } })).toThrow();
   });
 
+  it("accepts the contact strip's visibility, alignment and layout and rejects unknown values", () => {
+    const parsed = saveAppearanceSchema.parse({
+      showHeaderHtml: false,
+      showContactLinks: false,
+      contactAlignment: "left",
+      contactLayout: "column",
+    });
+    expect(parsed).toMatchObject({
+      showHeaderHtml: false,
+      showContactLinks: false,
+      contactAlignment: "left",
+      contactLayout: "column",
+    });
+    expect(() => saveAppearanceSchema.parse({ contactAlignment: "top" })).toThrow();
+    expect(() => saveAppearanceSchema.parse({ contactLayout: "grid" })).toThrow();
+  });
+
   it("still rejects a section the storefront does not have", () => {
     expect(() => saveAppearanceSchema.parse({ sections: { unknown: {} } })).toThrow();
   });

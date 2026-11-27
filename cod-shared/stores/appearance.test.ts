@@ -26,8 +26,12 @@ const valid = (): AppearanceSettings => ({
   hideHeaderText: false,
   hideMenu: false,
   searchEnabled: true,
+  showHeaderHtml: true,
+  showContactLinks: true,
   headerHtml: "",
   logoAlignment: "right",
+  contactAlignment: "center",
+  contactLayout: "row",
 });
 
 describe("colorSchemesProblem", () => {
@@ -268,7 +272,58 @@ describe("the olive preset and storefront controls", () => {
 
   it("refuses a control that is not on or off, and HTML past its limit", () => {
     expect(appearanceSettingsProblem({ ...valid(), searchEnabled: "yes" })).toMatch(/must be on or off/);
+    expect(appearanceSettingsProblem({ ...valid(), showHeaderHtml: "yes" })).toMatch(/must be on or off/);
+    expect(appearanceSettingsProblem({ ...valid(), showContactLinks: "yes" })).toMatch(/must be on or off/);
     expect(appearanceSettingsProblem({ ...valid(), headerHtml: "x".repeat(2001) })).toMatch(/at most 2000/);
+  });
+});
+
+describe("contact strip controls", () => {
+  it("takes only the declared alignments and layouts", () => {
+    for (const contactAlignment of ["center", "left", "right"] as const) {
+      expect(appearanceSettingsProblem({ ...valid(), contactAlignment })).toBeNull();
+    }
+    for (const contactLayout of ["row", "column"] as const) {
+      expect(appearanceSettingsProblem({ ...valid(), contactLayout })).toBeNull();
+    }
+    expect(appearanceSettingsProblem({ ...valid(), contactAlignment: "top" })).toMatch(/center, left or right/);
+    expect(appearanceSettingsProblem({ ...valid(), contactLayout: "grid" })).toMatch(/row or column/);
+  });
+
+  it("writes, reads and keeps the visibility and shape of the contact strip", () => {
+    const settings: AppearanceSettings = {
+      ...valid(),
+      showHeaderHtml: false,
+      showContactLinks: false,
+      contactAlignment: "left",
+      contactLayout: "column",
+    };
+    const flat = appearanceSettingsToTheme(settings);
+    expect(flat).toMatchObject({
+      showHeaderHtml: false,
+      showContactLinks: false,
+      contactAlignment: "left",
+      contactLayout: "column",
+    });
+    expect(appearanceThemeSettingsOf(flat)).toMatchObject({
+      showHeaderHtml: false,
+      showContactLinks: false,
+      contactAlignment: "left",
+      contactLayout: "column",
+    });
+    expect(appearanceThemeSettingsOf({ ...flat, contactAlignment: "top", contactLayout: "grid" })).toMatchObject({
+      contactAlignment: "center",
+      contactLayout: "row",
+    });
+    expect(
+      mergeAppearance(
+        { ...valid(), contactAlignment: "right" },
+        { colorSchemes: clone(APPEARANCE_DEFAULT_SCHEMES), pageScheme: "scheme-1", contactLayout: "column" },
+      ).settings,
+    ).toMatchObject({
+      contactAlignment: "right",
+      contactLayout: "column",
+    });
   });
 });
 

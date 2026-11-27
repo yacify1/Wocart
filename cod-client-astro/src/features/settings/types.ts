@@ -5,6 +5,8 @@ import type {
   AppearanceChromeColors,
   AppearanceColorScheme,
   AppearanceContact,
+  AppearanceContactAlignment,
+  AppearanceContactLayout,
   AppearanceDetailColors,
   AppearanceHomeSectionKey,
   AppearanceLogoAlignment,
@@ -77,10 +79,17 @@ export interface StoreAppearance {
   /** Hide the header navigation menu and its mobile tab. */
   hideMenu: boolean;
   searchEnabled: boolean;
+  /** Whether the saved HTML strip is shown above the header. */
+  showHeaderHtml: boolean;
+  /** Whether the saved contact links are shown in the header strip. */
+  showContactLinks: boolean;
   /** Sanitized HTML the store puts above its header. */
   headerHtml: string;
   /** Where the logo sits, regardless of the header's own logo position. */
   logoAlignment: AppearanceLogoAlignment;
+  /** Where the contact actions sit, or how they stack on a phone. */
+  contactAlignment: AppearanceContactAlignment;
+  contactLayout: AppearanceContactLayout;
   /** One entry for every home section, including an image ready to preview. */
   sections: Record<
     AppearanceHomeSectionKey,

@@ -9,6 +9,8 @@
  * read against its declaration, so a value it cannot use falls back to its
  * design and a setting of an older version is ignored.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { describe, expect, it } from "vitest";
 import { resolveThemeSettings } from "@wocart/theme";
@@ -158,6 +160,48 @@ describe("the header and the footer's menu", () => {
     expect(unsafe).not.toContain("Liens de contact");
     expect(unsafe).not.toContain("javascript:");
     expect(unsafe).not.toContain("evil.test");
+  });
+
+  it("hides the saved header strip and contact actions without deleting their content", async () => {
+    const renderWith = async (themeSettings: Record<string, unknown>) =>
+      (await AstroContainer.create()).renderToString(Header, {
+        props: { ...HEADER_PROPS, storeMenu: menu },
+        locals: locals({ config: { ...TEST_CONFIG, themeSettings } }),
+      });
+    const saved = { headerHtml: "<strong>Sale</strong>", contactPhone: "tel:+21355123456" };
+    expect(await renderWith(saved)).toContain("Liens de contact");
+    expect(await renderWith(saved)).toContain("<strong>Sale</strong>");
+
+    const hidden = await renderWith({ ...saved, showHeaderHtml: false, showContactLinks: false });
+    expect(hidden).not.toContain('class="header-html"');
+    expect(hidden).not.toContain("Liens de contact");
+    expect(hidden).not.toContain("Sale");
+  });
+
+  it("aligns and orients the contact actions from the dashboard", async () => {
+    const renderWith = async (themeSettings: Record<string, unknown>) =>
+      (await AstroContainer.create()).renderToString(Header, {
+        props: { ...HEADER_PROPS, storeMenu: menu },
+        locals: locals({ config: { ...TEST_CONFIG, themeSettings } }),
+      });
+    const saved = { contactPhone: "tel:+21355123456" };
+    expect(await renderWith(saved)).toMatch(/data-contact-align="center"/);
+    expect(await renderWith(saved)).toMatch(/data-contact-layout="row"/);
+
+    const column = await renderWith({ ...saved, contactAlignment: "left", contactLayout: "column" });
+    expect(column).toMatch(/data-contact-align="left"/);
+    expect(column).toMatch(/data-contact-layout="column"/);
+
+    const invalid = await renderWith({ ...saved, contactAlignment: "top", contactLayout: "grid" });
+    expect(invalid).toMatch(/data-contact-align="center"/);
+    expect(invalid).toMatch(/data-contact-layout="row"/);
+
+    const source = readFileSync(resolve(process.cwd(), "src/theme/components/layout/Header.astro"), "utf8");
+    expect(source).toContain('[dir="rtl"] .header-contact[data-contact-align="left"]');
+    expect(source).toContain('[dir="rtl"] .header-contact[data-contact-align="right"]');
+    expect(source).toContain('.header-contact[data-contact-layout="column"]');
+    expect(source).toContain('[dir="rtl"] .header-contact[data-contact-layout="column"][data-contact-align="left"]');
+    expect(source).toContain('[dir="rtl"] .header-contact[data-contact-layout="column"][data-contact-align="right"]');
   });
 
   it("applies the store's header and header-strip colors without changing the scheme markers", async () => {
@@ -347,7 +391,11 @@ describe("the theme's settings", () => {
       searchEnabled: true,
       hideHeroImages: false,
       headerHtml: "",
+      showHeaderHtml: true,
+      showContactLinks: true,
       logoAlignment: "right",
+      contactAlignment: "center",
+      contactLayout: "row",
       homeHeroHidden: false,
       homeMarqueeHidden: false,
       homeMarqueeText: "",

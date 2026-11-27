@@ -76,6 +76,12 @@ export const APPEARANCE_MEDIA_KEY = new RegExp(
 export const APPEARANCE_LOGO_ALIGNMENTS = ["right", "left", "center"] as const;
 export type AppearanceLogoAlignment = (typeof APPEARANCE_LOGO_ALIGNMENTS)[number];
 
+export const APPEARANCE_CONTACT_ALIGNMENTS = ["center", "left", "right"] as const;
+export type AppearanceContactAlignment = (typeof APPEARANCE_CONTACT_ALIGNMENTS)[number];
+
+export const APPEARANCE_CONTACT_LAYOUTS = ["row", "column"] as const;
+export type AppearanceContactLayout = (typeof APPEARANCE_CONTACT_LAYOUTS)[number];
+
 /** The home sections the Appearance tab controls, in the page's order. */
 export const APPEARANCE_HOME_SECTIONS = [
   { key: "hero", hiddenKey: "homeHeroHidden", imageKey: "homeHeroImage" },
@@ -134,6 +140,10 @@ export interface AppearanceSettings {
   hideHeaderText?: boolean;
   hideMenu?: boolean;
   searchEnabled?: boolean;
+  /** The merchant's HTML strip can be hidden without deleting its text. */
+  showHeaderHtml?: boolean;
+  /** The contact strip can be hidden without deleting the saved links. */
+  showContactLinks?: boolean;
   headerHtml?: string;
   /** Where the logo sits, independent of the search icon and the header's own fields. */
   logoAlignment?: AppearanceLogoAlignment;
@@ -143,6 +153,9 @@ export interface AppearanceSettings {
   chromeColors?: AppearanceChromeColors;
   /** Safe contact and social links the storefront shows as small action buttons. */
   contact?: AppearanceContact;
+  /** Where the contact actions sit on their row, or how they stack on a phone. */
+  contactAlignment?: AppearanceContactAlignment;
+  contactLayout?: AppearanceContactLayout;
   detailColors?: AppearanceDetailColors;
 }
 
@@ -539,8 +552,12 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
     hideHeaderText: settings.hideHeaderText ?? false,
     hideMenu: settings.hideMenu ?? false,
     searchEnabled: settings.searchEnabled ?? true,
+    showHeaderHtml: settings.showHeaderHtml ?? true,
+    showContactLinks: settings.showContactLinks ?? true,
     headerHtml: sanitizeHeaderHtml(settings.headerHtml ?? ""),
     logoAlignment: settings.logoAlignment ?? "right",
+    contactAlignment: settings.contactAlignment ?? "center",
+    contactLayout: settings.contactLayout ?? "row",
   };
   for (const section of APPEARANCE_HOME_SECTIONS) {
     const edit = settings.sections?.[section.key];
@@ -659,10 +676,18 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
     hideHeaderText: stored.hideHeaderText ?? false,
     hideMenu: stored.hideMenu ?? false,
     searchEnabled: stored.searchEnabled ?? true,
+    showHeaderHtml: stored.showHeaderHtml ?? true,
+    showContactLinks: stored.showContactLinks ?? true,
     headerHtml: typeof stored.headerHtml === "string" ? stored.headerHtml : "",
     logoAlignment: APPEARANCE_LOGO_ALIGNMENTS.includes(stored.logoAlignment as AppearanceLogoAlignment)
       ? (stored.logoAlignment as AppearanceLogoAlignment)
       : "right",
+    contactAlignment: APPEARANCE_CONTACT_ALIGNMENTS.includes(stored.contactAlignment as AppearanceContactAlignment)
+      ? (stored.contactAlignment as AppearanceContactAlignment)
+      : "center",
+    contactLayout: APPEARANCE_CONTACT_LAYOUTS.includes(stored.contactLayout as AppearanceContactLayout)
+      ? (stored.contactLayout as AppearanceContactLayout)
+      : "row",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
     chromeColors: Object.keys(chromeColors).length > 0 ? chromeColors : undefined,
     contact: Object.keys(contact).length > 0 ? contact : undefined,
@@ -720,7 +745,14 @@ export function appearanceSettingsProblem(value: unknown): string | null {
   if (!schemes.some((scheme) => scheme.id === value.pageScheme)) {
     return `pageScheme names "${value.pageScheme}", which the store does not have`;
   }
-  for (const key of ["hideLogo", "hideHeaderText", "hideMenu", "searchEnabled"] as const) {
+  for (const key of [
+    "hideLogo",
+    "hideHeaderText",
+    "hideMenu",
+    "searchEnabled",
+    "showHeaderHtml",
+    "showContactLinks",
+  ] as const) {
     if (value[key] !== undefined && typeof value[key] !== "boolean") return `${key} must be on or off`;
   }
   if (value.headerHtml !== undefined && typeof value.headerHtml !== "string") {
@@ -731,6 +763,18 @@ export function appearanceSettingsProblem(value: unknown): string | null {
   }
   if (value.logoAlignment !== undefined && !(APPEARANCE_LOGO_ALIGNMENTS as readonly string[]).includes(value.logoAlignment as string)) {
     return "logoAlignment must be right, left or center";
+  }
+  if (
+    value.contactAlignment !== undefined &&
+    !(APPEARANCE_CONTACT_ALIGNMENTS as readonly string[]).includes(value.contactAlignment as string)
+  ) {
+    return "contactAlignment must be center, left or right";
+  }
+  if (
+    value.contactLayout !== undefined &&
+    !(APPEARANCE_CONTACT_LAYOUTS as readonly string[]).includes(value.contactLayout as string)
+  ) {
+    return "contactLayout must be row or column";
   }
   if (value.sections !== undefined) {
     const sectionsProblem = appearanceSectionsProblem(value.sections);
@@ -810,8 +854,12 @@ export function mergeAppearance(
     hideHeaderText: next.hideHeaderText ?? current?.hideHeaderText ?? false,
     hideMenu: next.hideMenu ?? current?.hideMenu ?? false,
     searchEnabled: next.searchEnabled ?? current?.searchEnabled ?? true,
+    showHeaderHtml: next.showHeaderHtml ?? current?.showHeaderHtml ?? true,
+    showContactLinks: next.showContactLinks ?? current?.showContactLinks ?? true,
     headerHtml: sanitizeHeaderHtml(next.headerHtml ?? current?.headerHtml ?? ""),
     logoAlignment: next.logoAlignment ?? current?.logoAlignment ?? "right",
+    contactAlignment: next.contactAlignment ?? current?.contactAlignment ?? "center",
+    contactLayout: next.contactLayout ?? current?.contactLayout ?? "row",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
     chromeColors: Object.keys(chromeColors).length > 0 ? chromeColors : undefined,
     contact: Object.keys(contact).length > 0 ? contact : undefined,

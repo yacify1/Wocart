@@ -3,6 +3,8 @@ import type {
   AppearanceChromeColors,
   AppearanceColorScheme,
   AppearanceContact,
+  AppearanceContactAlignment,
+  AppearanceContactLayout,
   AppearanceDetailColors,
   AppearanceLogoAlignment,
   AppearanceSectionEdits,
@@ -44,8 +46,12 @@ export interface SaveAppearanceInput {
   hideHeaderText?: boolean;
   hideMenu?: boolean;
   searchEnabled?: boolean;
+  showHeaderHtml?: boolean;
+  showContactLinks?: boolean;
   headerHtml?: string;
   logoAlignment?: AppearanceLogoAlignment;
+  contactAlignment?: AppearanceContactAlignment;
+  contactLayout?: AppearanceContactLayout;
   sections?: AppearanceSectionEdits;
   chromeColors?: AppearanceChromeColors;
   contact?: AppearanceContact;

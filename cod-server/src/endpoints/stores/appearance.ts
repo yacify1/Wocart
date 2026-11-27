@@ -27,7 +27,9 @@ import { NotFoundError, ValidationError } from "@/lib/errors/classes";
 import { ERROR_CODES } from "../../../../cod-shared/errors/codes";
 import {
   APPEARANCE_CHROME_KEYS,
+  APPEARANCE_CONTACT_ALIGNMENTS,
   APPEARANCE_CONTACT_KEYS,
+  APPEARANCE_CONTACT_LAYOUTS,
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEADER_HTML_MAX,
   APPEARANCE_LINK_MAX,
@@ -50,6 +52,8 @@ import {
   sanitizeHeaderHtml,
   type AppearanceColorScheme,
   type AppearanceContact,
+  type AppearanceContactAlignment,
+  type AppearanceContactLayout,
   type AppearanceDetailColors,
   type AppearanceHomeSectionKey,
   type AppearanceLogoAlignment,
@@ -84,6 +88,12 @@ const SECTION_KEYS = APPEARANCE_HOME_SECTIONS.map((section) => section.key) as [
 ];
 const logoAlignmentSchema = z.enum(
   APPEARANCE_LOGO_ALIGNMENTS as unknown as [AppearanceLogoAlignment, ...AppearanceLogoAlignment[]],
+);
+const contactAlignmentSchema = z.enum(
+  APPEARANCE_CONTACT_ALIGNMENTS as unknown as [AppearanceContactAlignment, ...AppearanceContactAlignment[]],
+);
+const contactLayoutSchema = z.enum(
+  APPEARANCE_CONTACT_LAYOUTS as unknown as [AppearanceContactLayout, ...AppearanceContactLayout[]],
 );
 
 const appearanceImageSchema = z.object({
@@ -172,8 +182,12 @@ const appearanceSchema = z.object({
   hideHeaderText: z.boolean(),
   hideMenu: z.boolean(),
   searchEnabled: z.boolean(),
+  showHeaderHtml: z.boolean(),
+  showContactLinks: z.boolean(),
   headerHtml: z.string(),
   logoAlignment: logoAlignmentSchema,
+  contactAlignment: contactAlignmentSchema,
+  contactLayout: contactLayoutSchema,
   sections: z.record(z.enum(SECTION_KEYS), sectionStateSchema),
   chromeColors: chromeColorsSchema,
   contact: contactSchema,
@@ -188,8 +202,12 @@ export const saveAppearanceSchema = z.object({
   hideHeaderText: z.boolean().optional(),
   hideMenu: z.boolean().optional(),
   searchEnabled: z.boolean().optional(),
+  showHeaderHtml: z.boolean().optional(),
+  showContactLinks: z.boolean().optional(),
   headerHtml: z.string().max(APPEARANCE_HEADER_HTML_MAX).optional(),
   logoAlignment: logoAlignmentSchema.optional(),
+  contactAlignment: contactAlignmentSchema.optional(),
+  contactLayout: contactLayoutSchema.optional(),
   sections: z.partialRecord(z.enum(SECTION_KEYS), sectionEditSchema).optional(),
   chromeColors: chromeColorsSchema.optional(),
   contact: contactSchema.optional(),
@@ -260,8 +278,12 @@ async function appearanceOf(db: ReturnType<typeof getDb>, store: StoreRow, env: 
     hideHeaderText: saved?.hideHeaderText ?? false,
     hideMenu: saved?.hideMenu ?? false,
     searchEnabled: saved?.searchEnabled ?? true,
+    showHeaderHtml: saved?.showHeaderHtml ?? true,
+    showContactLinks: saved?.showContactLinks ?? true,
     headerHtml: saved?.headerHtml ?? "",
     logoAlignment: saved?.logoAlignment ?? "right",
+    contactAlignment: saved?.contactAlignment ?? "center",
+    contactLayout: saved?.contactLayout ?? "row",
     sections,
     chromeColors,
     contact: (saved?.contact ?? {}) as AppearanceContact,
@@ -296,8 +318,12 @@ export async function saveAppearance(c: Context<AppContext>) {
     hideHeaderText: body.hideHeaderText ?? saved?.hideHeaderText ?? false,
     hideMenu: body.hideMenu ?? saved?.hideMenu ?? false,
     searchEnabled: body.searchEnabled ?? saved?.searchEnabled ?? true,
+    showHeaderHtml: body.showHeaderHtml ?? saved?.showHeaderHtml ?? true,
+    showContactLinks: body.showContactLinks ?? saved?.showContactLinks ?? true,
     headerHtml: sanitizeHeaderHtml(body.headerHtml ?? saved?.headerHtml ?? ""),
     logoAlignment: body.logoAlignment ?? saved?.logoAlignment ?? "right",
+    contactAlignment: body.contactAlignment ?? saved?.contactAlignment ?? "center",
+    contactLayout: body.contactLayout ?? saved?.contactLayout ?? "row",
     sections: body.sections as AppearanceSectionEdits | undefined,
     chromeColors: body.chromeColors,
     contact: body.contact as AppearanceContact | undefined,

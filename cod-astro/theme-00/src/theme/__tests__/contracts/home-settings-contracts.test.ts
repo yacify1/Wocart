@@ -173,6 +173,9 @@ describe("scrolling text controls", () => {
     const mobile = /@media \(max-width: 639px\) \{([\s\S]*?)\n  \}/.exec(source)?.[1] ?? "";
     expect(mobile).toContain(".marquee-item {");
     expect(mobile).not.toContain(".marquee-track { display: none; }");
+    expect(source).toContain("white-space: nowrap;");
+    expect(source).toContain("animation: marquee var(--marquee-time) linear infinite;");
+    expect(source).toContain(".marquee:hover .marquee-track { animation-play-state: paused; }");
     expect(source).toContain("@media (prefers-reduced-motion: reduce) {");
   });
 
@@ -317,6 +320,16 @@ describe("category photos", () => {
     expect(source).toContain('class:list={["category-tile", "plate", "category-all"]}');
     expect(source).not.toMatch(/\.category-all \{[^}]*border: 1px solid var\(--clr-ink\)/);
     expect(source).toContain("max-width: min(3.5rem, 78%);");
+
+    const mobile = /@media \(max-width: 639px\) \{([\s\S]*?)\n  \}/.exec(source)?.[1] ?? "";
+    expect(mobile).toContain("display: flex;");
+    expect(mobile).toContain("flex-wrap: nowrap;");
+    expect(mobile).toContain("overflow-x: auto;");
+    expect(mobile).toContain("scroll-snap-type: x mandatory;");
+    expect(mobile).toContain("scroll-padding-inline: 1rem;");
+    expect(mobile).toContain("direction: inherit;");
+    expect(mobile).toContain("flex: 0 0 min(62vw, 15rem);");
+    expect(mobile).not.toContain("grid-template-columns: repeat(2");
   });
 
   it("lets the store recolor a section on the element that wears its scheme", async () => {

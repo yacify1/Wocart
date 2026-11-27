@@ -446,6 +446,7 @@ html[lang="ar"] body {
   }
 
   [class*="animate-[cf-grow"],
+  [data-preview-marquee-track],
   .animate-rise,
   .animate-pop,
   .animate-sheet,
@@ -545,5 +546,18 @@ html[lang="ar"] body {
   }
   to {
     transform: scaleX(1);
+  }
+}
+
+[data-preview-marquee-track] {
+  --appearance-marquee-shift: -50%;
+  animation: appearance-marquee 12s linear infinite;
+}
+[data-preview-marquee-track][dir="rtl"] {
+  --appearance-marquee-shift: 50%;
+}
+@keyframes appearance-marquee {
+  to {
+    transform: translateX(var(--appearance-marquee-shift));
   }
 }

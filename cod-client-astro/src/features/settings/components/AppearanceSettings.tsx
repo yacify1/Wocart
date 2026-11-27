@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Check, Layers3, Loader2, Palette, SlidersHorizontal, Type } from "lucide-react";
 import { Alert, Badge, Field, Input, Select, Switch, SwitchField, Textarea } from "@/components/ui";
 import { useLocale, useT } from "@/i18n/react";
@@ -11,7 +11,9 @@ import type { StoreAppearance } from "@/features/settings/types";
 import {
   APPEARANCE_CHROME_KEYS,
   APPEARANCE_COLOR_ROLES,
+  APPEARANCE_CONTACT_ALIGNMENTS,
   APPEARANCE_CONTACT_KEYS,
+  APPEARANCE_CONTACT_LAYOUTS,
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEADER_HTML_MAX,
   APPEARANCE_HOME_SECTIONS,
@@ -29,7 +31,9 @@ import {
   type AppearanceColorScheme,
   type AppearanceChromeColors,
   type AppearanceContact,
+  type AppearanceContactAlignment,
   type AppearanceContactKey,
+  type AppearanceContactLayout,
   type AppearanceDetailColorKey,
   type AppearanceDetailColors,
   type AppearanceHomeSectionKey,
@@ -178,6 +182,19 @@ function safeSize(value: unknown): number | undefined {
 }
 
 type SectionState = StoreAppearance["sections"][AppearanceHomeSectionKey];
+
+type AppearanceControls = {
+  hideLogo: boolean;
+  hideHeaderText: boolean;
+  hideMenu: boolean;
+  searchEnabled: boolean;
+  showHeaderHtml: boolean;
+  showContactLinks: boolean;
+  headerHtml: string;
+  logoAlignment: AppearanceLogoAlignment;
+  contactAlignment: AppearanceContactAlignment;
+  contactLayout: AppearanceContactLayout;
+};
 
 function emptySection(key: AppearanceHomeSectionKey): SectionState {
   return {
@@ -519,6 +536,8 @@ function AppearancePreview({
   detailColors,
   sections,
   chromeColors,
+  controls,
+  direction,
   title,
   subtitle,
   cta,
@@ -527,6 +546,8 @@ function AppearancePreview({
   detailColors: AppearanceDetailColors;
   sections: StoreAppearance["sections"];
   chromeColors: AppearanceChromeColors;
+  controls: AppearanceControls;
+  direction: "rtl" | "ltr";
   title: string;
   subtitle: string;
   cta: string;
@@ -539,11 +560,23 @@ function AppearancePreview({
   const newPrice = detailColors.newPrice ?? autoDetailSwatch("newPrice", scheme);
   const offer = detailColors.offer ?? autoDetailColor("offer", scheme);
   const announcement = chromeColors.announcement ?? {};
-  const headerHtml = chromeColors.headerHtml ?? {};
+  const headerHtmlColors = chromeColors.headerHtml ?? {};
   const hero = sections.hero ?? {};
   const category = sections["category-cards"] ?? {};
+  const marquee = sections.marquee ?? {};
+  const otherSections = APPEARANCE_HOME_SECTIONS.filter(
+    ({ key }) => key !== "hero" && key !== "marquee" && key !== "category-cards",
+  );
   const heroButton = hero.buttonColor ?? colors.button;
   const categoryBg = category.backgroundColor ?? colors.background;
+  const contactStart = direction === "rtl" ? "flex-end" : "flex-start";
+  const contactEnd = direction === "rtl" ? "flex-start" : "flex-end";
+  const contactPosition =
+    controls.contactAlignment === "center" ? "center" : controls.contactAlignment === "left" ? contactStart : contactEnd;
+  const contactStyle: CSSProperties =
+    controls.contactLayout === "column"
+      ? { flexDirection: "column", alignItems: contactPosition }
+      : { flexDirection: "row", justifyContent: contactPosition };
 
   return (
     <section
@@ -564,35 +597,105 @@ function AppearancePreview({
         >
           {t("store.appearance_preview_top_strip")}
         </div>
+        {controls.showHeaderHtml && (
+          <div
+            className="border-b border-border/60 px-3 py-2 text-center text-[10px] uppercase tracking-wide"
+            style={{ background: headerHtmlColors.backgroundColor ?? colors.background, color: headerHtmlColors.color ?? colors.text }}
+          >
+            {t("store.appearance_preview_header_html")}
+          </div>
+        )}
         <div
-          className="border-b border-border/60 px-3 py-2 text-center text-[10px] uppercase tracking-wide"
-          style={{ background: headerHtml.backgroundColor ?? colors.background, color: headerHtml.color ?? colors.text }}
+          className="flex items-center gap-2 border-b border-border/60 px-3 py-2"
+          style={{ background: colors.background, color: colors.text }}
         >
-          {t("store.appearance_preview_header_html")}
+          {!controls.hideMenu && <span aria-hidden="true" className="text-xs">☰</span>}
+          {!controls.hideLogo && !controls.hideHeaderText && (
+            <span className="text-[10px] font-semibold" style={{ color: colors.heading }}>
+              {t("store.appearance_preview_store")}
+            </span>
+          )}
+          {controls.searchEnabled && <span aria-hidden="true" className="ms-auto text-xs">⌕</span>}
         </div>
         <div className="space-y-3 p-3" style={{ background: colors.background, color: colors.text }}>
-          <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className="text-[10px] font-semibold uppercase tracking-wide"
-              style={{ color: hero.color ?? colors.heading }}
+          {!hero.hidden && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-wide"
+                  style={{ color: hero.color ?? colors.heading }}
+                >
+                  {t("store.appearance_preview_hero")}
+                </span>
+                <span
+                  className="rounded px-2 py-1 text-[10px] font-bold"
+                  style={{ background: heroButton, color: readableOn(heroButton) }}
+                >
+                  {t("store.appearance_preview_cta")}
+                </span>
+              </div>
+            </div>
+          )}
+          {!category.hidden && (
+            <div
+              className="rounded-md px-3 py-2 text-center text-[10px] font-semibold"
+              style={{ background: categoryBg, color: category.color ?? colors.heading }}
             >
-              {t("store.appearance_preview_hero")}
-            </span>
-            <span
-              className="rounded px-2 py-1 text-[10px] font-bold"
-              style={{ background: heroButton, color: readableOn(heroButton) }}
+              {t("store.appearance_preview_category")}
+            </div>
+          )}
+          {!marquee.hidden && (
+            <div
+              className="overflow-hidden rounded-md border border-border/60"
+              style={{ background: marquee.backgroundColor ?? colors.heading, color: marquee.color ?? colors.background }}
             >
-              {t("store.appearance_preview_cta")}
-            </span>
-          </div>
-          <div
-            className="rounded-md px-3 py-2 text-center text-[10px] font-semibold"
-            style={{ background: categoryBg, color: category.color ?? colors.heading }}
-          >
-            {t("store.appearance_preview_category")}
-          </div>
-          </div>
+              <div
+                dir={direction}
+                data-preview-marquee-track="true"
+                className="flex w-max min-w-full gap-6 py-1 text-[10px] font-semibold"
+              >
+                <span className="shrink-0">{t("store.appearance_preview_marquee")}</span>
+                <span className="shrink-0">{t("store.appearance_preview_marquee")}</span>
+                <span className="shrink-0">{t("store.appearance_preview_marquee")}</span>
+                <span className="shrink-0">{t("store.appearance_preview_marquee")}</span>
+              </div>
+            </div>
+          )}
+          {otherSections.map(({ key }) => {
+            const section = sections[key] ?? {};
+            if (section.hidden) return null;
+            return (
+              <div
+                key={key}
+                className="rounded-md border border-border/60 px-3 py-1.5 text-center text-[10px] font-medium"
+                style={{ background: section.backgroundColor ?? colors.background, color: section.color ?? colors.heading }}
+              >
+                {t(`store.appearance_section_${key}`)}
+              </div>
+            );
+          })}
+          {controls.showContactLinks && (
+            <div className="space-y-1 border-t border-border/60 pt-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.heading }}>
+                {t("store.appearance_group_contact")}
+              </p>
+              <div dir={direction} style={contactStyle} className="flex gap-1.5">
+                {[
+                  t("store.appearance_contact_phone"),
+                  t("store.appearance_contact_email"),
+                  t("store.appearance_contact_instagram"),
+                ].map((label) => (
+                  <span
+                    key={label}
+                    className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold"
+                    style={{ borderColor: colors.border, color: colors.text }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="space-y-3 border-t border-border/60 pt-3">
           <div className="space-y-1">
             <p className="text-base font-bold leading-snug" style={{ color: colors.heading }}>
@@ -662,8 +765,12 @@ export function AppearanceSettings() {
     hideHeaderText: false,
     hideMenu: false,
     searchEnabled: true,
+    showHeaderHtml: true,
+    showContactLinks: true,
     headerHtml: "",
     logoAlignment: "right" as AppearanceLogoAlignment,
+    contactAlignment: "center" as AppearanceContactAlignment,
+    contactLayout: "row" as AppearanceContactLayout,
   });
   const [sections, setSections] = useState<StoreAppearance["sections"]>(emptySections);
   const [chromeColors, setChromeColors] = useState<AppearanceChromeColors>(() => safeChromeColors({}));
@@ -700,8 +807,12 @@ export function AppearanceSettings() {
       hideHeaderText: saved.hideHeaderText ?? controls.hideHeaderText,
       hideMenu: saved.hideMenu ?? controls.hideMenu,
       searchEnabled: saved.searchEnabled ?? controls.searchEnabled,
+      showHeaderHtml: saved.showHeaderHtml ?? controls.showHeaderHtml,
+      showContactLinks: saved.showContactLinks ?? controls.showContactLinks,
       headerHtml: typeof saved.headerHtml === "string" ? saved.headerHtml : controls.headerHtml,
       logoAlignment: saved.logoAlignment ?? controls.logoAlignment,
+      contactAlignment: saved.contactAlignment ?? controls.contactAlignment,
+      contactLayout: saved.contactLayout ?? controls.contactLayout,
     });
     setChromeColors(safeChromeColors(saved.chromeColors));
     setContact(safeContact(saved.contact));
@@ -811,8 +922,12 @@ export function AppearanceSettings() {
       hideHeaderText: controls.hideHeaderText,
       hideMenu: controls.hideMenu,
       searchEnabled: controls.searchEnabled,
+      showHeaderHtml: controls.showHeaderHtml,
+      showContactLinks: controls.showContactLinks,
       headerHtml: controls.headerHtml,
       logoAlignment: controls.logoAlignment,
+      contactAlignment: controls.contactAlignment,
+      contactLayout: controls.contactLayout,
       chromeColors,
       contact,
     };
@@ -1030,6 +1145,48 @@ export function AppearanceSettings() {
                 ))}
               </Select>
             </FieldRow>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FieldRow
+                label={t("store.appearance_control_contactAlignment")}
+                help={t("store.appearance_control_contactAlignment_hint")}
+              >
+                <Select
+                  value={controls.contactAlignment}
+                  onChange={(event) =>
+                    setControls((current) => ({
+                      ...current,
+                      contactAlignment: event.target.value as AppearanceContactAlignment,
+                    }))
+                  }
+                >
+                  {APPEARANCE_CONTACT_ALIGNMENTS.map((alignment) => (
+                    <option key={alignment} value={alignment}>
+                      {t(`store.appearance_contact_${alignment}`)}
+                    </option>
+                  ))}
+                </Select>
+              </FieldRow>
+              <FieldRow
+                label={t("store.appearance_control_contactLayout")}
+                help={t("store.appearance_control_contactLayout_hint")}
+              >
+                <Select
+                  value={controls.contactLayout}
+                  onChange={(event) =>
+                    setControls((current) => ({
+                      ...current,
+                      contactLayout: event.target.value as AppearanceContactLayout,
+                    }))
+                  }
+                >
+                  {APPEARANCE_CONTACT_LAYOUTS.map((layout) => (
+                    <option key={layout} value={layout}>
+                      {t(`store.appearance_contact_layout_${layout}`)}
+                    </option>
+                  ))}
+                </Select>
+              </FieldRow>
+            </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <SwitchField
                 label={t("store.appearance_control_hideLogo")}
@@ -1061,6 +1218,12 @@ export function AppearanceSettings() {
               checked={controls.searchEnabled}
               onChange={(searchEnabled) => setControls((current) => ({ ...current, searchEnabled }))}
             />
+            <SwitchField
+              label={t("store.appearance_control_showHeaderHtml")}
+              help={t("store.appearance_control_showHeaderHtml_hint")}
+              checked={controls.showHeaderHtml}
+              onChange={(showHeaderHtml) => setControls((current) => ({ ...current, showHeaderHtml }))}
+            />
             <Field
               label={t("store.appearance_control_headerHtml")}
               hint={`${controls.headerHtml.length}/${APPEARANCE_HEADER_HTML_MAX}`}
@@ -1084,6 +1247,12 @@ export function AppearanceSettings() {
               </p>
               <p className="mt-1 text-xs text-muted-foreground">{t("store.appearance_contact_hint")}</p>
             </div>
+            <SwitchField
+              label={t("store.appearance_control_showContactLinks")}
+              help={t("store.appearance_control_showContactLinks_hint")}
+              checked={controls.showContactLinks}
+              onChange={(showContactLinks) => setControls((current) => ({ ...current, showContactLinks }))}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
               {CONTACT_FIELDS.map((field) => (
                 <Field key={field.key} label={t(field.labelKey)}>
@@ -1271,6 +1440,8 @@ export function AppearanceSettings() {
           detailColors={detailColors}
           sections={sections}
           chromeColors={chromeColors}
+          controls={controls}
+          direction={STORE_LOCALE_INFO[textLocale].direction}
           title={previewTitle}
           subtitle={previewSubtitle}
           cta={previewCta}
