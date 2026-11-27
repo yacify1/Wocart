@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import type {
   AppearanceColorScheme,
   AppearanceDetailColors,
@@ -50,10 +50,27 @@ export interface SaveAppearanceInput {
   texts?: { locale: StoreLocale; values: Record<string, string> };
 }
 
+async function appearanceData(path: string, init?: RequestInit): Promise<StoreAppearance> {
+  const envelope = (await apiFetch<unknown>(path, init)) as Partial<DataEnvelope<StoreAppearance>> | null;
+  if (
+    !envelope ||
+    typeof envelope !== "object" ||
+    envelope.success === false ||
+    !envelope.data ||
+    typeof envelope.data !== "object"
+  ) {
+    throw new ApiError("The appearance response was malformed", 500, "APPEARANCE_MALFORMED");
+  }
+  return envelope.data;
+}
+
 export async function getAppearance() {
-  return (await apiFetch<DataEnvelope<StoreAppearance>>("/api/stores/me/appearance")).data;
+  return appearanceData("/api/stores/me/appearance");
 }
 
 export async function saveAppearance(data: SaveAppearanceInput) {
-  return (await apiFetch<DataEnvelope<StoreAppearance>>("/api/stores/me/appearance", json({ method: "PUT", body: JSON.stringify(data) }))).data;
+  return appearanceData(
+    "/api/stores/me/appearance",
+    json({ method: "PUT", body: JSON.stringify(data) }),
+  );
 }

@@ -5,7 +5,7 @@ import { useLocale, useT } from "@/i18n/react";
 import { getAppearance, saveAppearance, type SaveAppearanceInput } from "@/features/settings/api";
 import { SettingsSection, FieldRow } from "@/features/settings/components/SettingsSection";
 import { ImageUploader } from "@/features/uploads/components/ImageUploader";
-import type { MediaImage } from "@/features/uploads/api";
+import { isMediaImage, type MediaImage } from "@/features/uploads/api";
 import type { StoreAppearance } from "@/features/settings/types";
 import {
   APPEARANCE_COLOR_ROLES,
@@ -113,6 +113,14 @@ function normalizedHex(raw: string): string | null {
   return null;
 }
 
+function safeHex(value: unknown): string | null {
+  return typeof value === "string" && APPEARANCE_HEX.test(value) ? value.toLowerCase() : null;
+}
+
+function safeSize(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
 type SectionState = StoreAppearance["sections"][AppearanceHomeSectionKey];
 
 function emptySection(key: AppearanceHomeSectionKey): SectionState {
@@ -128,11 +136,13 @@ function emptySections(): StoreAppearance["sections"] {
 }
 
 function sectionImageOf(image: MediaImage | null): AppearanceImage | null {
-  if (!image) return null;
+  if (!isMediaImage(image)) return null;
+  const width = safeSize(image.width);
+  const height = safeSize(image.height);
   return {
     key: image.key,
-    ...(image.width !== null ? { width: image.width } : {}),
-    ...(image.height !== null ? { height: image.height } : {}),
+    ...(width !== undefined ? { width } : {}),
+    ...(height !== undefined ? { height } : {}),
   };
 }
 
@@ -156,14 +166,12 @@ function sectionEdits(sections: StoreAppearance["sections"]): AppearanceSectionE
 }
 
 function savedSectionImage(image: unknown): MediaImage | null {
-  if (!image || typeof image !== "object") return null;
-  const candidate = image as Partial<MediaImage>;
-  if (typeof candidate.key !== "string" || typeof candidate.url !== "string") return null;
+  if (!isMediaImage(image)) return null;
   return {
-    key: candidate.key,
-    url: candidate.url,
-    width: candidate.width ?? null,
-    height: candidate.height ?? null,
+    key: image.key,
+    url: image.url,
+    width: safeSize(image.width) ?? null,
+    height: safeSize(image.height) ?? null,
   };
 }
 
@@ -172,13 +180,13 @@ function sectionsFrom(saved: StoreAppearance): StoreAppearance["sections"] {
   for (const { key } of APPEARANCE_HOME_SECTIONS) {
     const savedSection = saved.sections?.[key];
     nextSections[key] = {
-      hidden: savedSection?.hidden ?? false,
+      hidden: savedSection?.hidden === true,
       image: savedSectionImage(savedSection?.image),
       ...(key === "marquee"
         ? {
-            text: savedSection?.text ?? "",
-            color: savedSection?.color ?? null,
-            accentColor: savedSection?.accentColor ?? null,
+            text: typeof savedSection?.text === "string" ? savedSection.text : "",
+            color: safeHex(savedSection?.color),
+            accentColor: safeHex(savedSection?.accentColor),
           }
         : {}),
     };
@@ -403,6 +411,7 @@ export function AppearanceSettings() {
   const sectionVersion = useRef(0);
 
   function applySaved(saved: StoreAppearance, initial = false, sectionsSaved = false) {
+    if (!saved || typeof saved !== "object") throw new Error(t("store.save_error"));
     const colorSchemes = safeColorSchemes(saved.colorSchemes, schemes);
     const pageSchemeSaved =
       typeof saved.pageScheme === "string" && colorSchemes.some((scheme) => scheme.id === saved.pageScheme)
@@ -852,7 +861,9 @@ export function AppearanceSettings() {
                     </p>
                     <ImageUploader
                       value={section?.image ?? null}
-                      onChange={(image: MediaImage | null) => updateSection(key, { image })}
+                      onChange={(image: MediaImage | null) =>
+                        updateSection(key, { image: isMediaImage(image) ? image : null })
+                      }
                       alt={label}
                       shape="landscape"
                       buttonLabel={t("store.appearance_section_upload")}

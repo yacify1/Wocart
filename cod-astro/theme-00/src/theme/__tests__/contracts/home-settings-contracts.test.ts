@@ -120,6 +120,7 @@ describe("per-section visibility and photos", () => {
     });
     expect(html).toContain('alt="Own hero"');
     expect(html).toContain('alt="Own promo"');
+    expect(html).toContain("hero-grid has-photo");
     expect(html).not.toContain("Photo 0");
   });
 
@@ -138,6 +139,7 @@ describe("per-section visibility and photos", () => {
   it("centers a hero without a photo instead of keeping the two-column gutter", () => {
     const source = readFileSync(resolve(process.cwd(), "src/theme/components/home/Hero.astro"), "utf8");
     const desktop = source.slice(source.indexOf("@media (min-width: 1024px)"));
+    expect(desktop).toContain(".hero-grid.has-photo { grid-template-columns: 1fr 1fr;");
     expect(desktop).toContain(".has-photo .hero-copy { padding-inline:");
     expect(desktop).toContain(".has-photo.photo-start .hero-copy { padding-inline:");
     expect(desktop).toMatch(/\.no-photo \.hero-copy \{[^}]*margin-inline: auto;/);

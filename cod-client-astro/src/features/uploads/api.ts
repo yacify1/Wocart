@@ -1,5 +1,5 @@
 import { ApiError, apiFetch } from "@/lib/api";
-import { IMAGE_TYPES, MEDIA_MAX_BYTES, isImageType, type ImageType, type UploadFolder } from "../../../../cod-shared/media/keys";
+import { IMAGE_TYPES, MEDIA_MAX_BYTES, isImageType, isMediaKey, type ImageType, type UploadFolder } from "../../../../cod-shared/media/keys";
 import type { MediaImage } from "../../../../cod-shared/media/model";
 import type { UploadSend, UploadTicket } from "../../../../cod-shared/media/library";
 
@@ -100,16 +100,16 @@ export async function sendUpload(
 export function isMediaImage(value: unknown): value is MediaImage {
   if (!value || typeof value !== "object") return false;
   const image = value as Partial<MediaImage>;
+  if (!isMediaKey(image.key) || typeof image.url !== "string" || image.url.length === 0) return false;
+  try {
+    const url = new URL(image.url);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  } catch {
+    return false;
+  }
   const size = (dimension: number | null | undefined) =>
-    dimension === null || (typeof dimension === "number" && Number.isFinite(dimension));
-  return (
-    typeof image.key === "string" &&
-    image.key.length > 0 &&
-    typeof image.url === "string" &&
-    image.url.length > 0 &&
-    size(image.width) &&
-    size(image.height)
-  );
+    dimension === null || (typeof dimension === "number" && Number.isInteger(dimension) && dimension > 0);
+  return size(image.width) && size(image.height);
 }
 
 /** The upload, confirmed by the store's server: the image as every answer carries it. */

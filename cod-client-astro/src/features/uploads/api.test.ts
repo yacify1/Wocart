@@ -17,6 +17,7 @@ import {
   ImageUploadRejectedError,
   MAX_UPLOAD_MB,
   completeUpload,
+  isMediaImage,
   measureImageDimensions,
   partitionUploadFiles,
   requestUpload,
@@ -158,6 +159,20 @@ describe("completeUpload", () => {
 
   it("refuses a completion answer that is not a usable image", async () => {
     seam.apiFetch.mockResolvedValue({ success: true, data: { key: "products/broken.webp" } });
+
+    await expect(
+      completeUpload("m/1", { hostRef: "ik-file-1", width: 10, height: 20 }),
+    ).rejects.toBeInstanceOf(ImageUploadFailedError);
+  });
+
+  it.each([
+    ["an invalid key", { ...IMAGE, key: "broken.webp" }],
+    ["a non-http url", { ...IMAGE, url: "javascript:alert(1)" }],
+    ["a negative dimension", { ...IMAGE, width: -1 }],
+    ["a fractional dimension", { ...IMAGE, height: 1.5 }],
+  ])("refuses %s before it reaches dashboard state", async (_label, image) => {
+    expect(isMediaImage(image)).toBe(false);
+    seam.apiFetch.mockResolvedValue({ success: true, data: image });
 
     await expect(
       completeUpload("m/1", { hostRef: "ik-file-1", width: 10, height: 20 }),

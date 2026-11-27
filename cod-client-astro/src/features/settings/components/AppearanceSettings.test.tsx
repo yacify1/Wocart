@@ -34,7 +34,9 @@ vi.mock("@/features/settings/api", () => ({
                   height: edit.image.height ?? null,
                 }
               : null,
-            ...(key === "marquee" ? { text: edit.text ?? "", color: edit.color ?? null } : {}),
+            ...(key === "marquee"
+              ? { text: edit.text ?? "", color: edit.color ?? null, accentColor: edit.accentColor ?? null }
+              : {}),
           },
         ]),
       );
@@ -51,8 +53,14 @@ vi.mock("@/features/uploads/api", () => ({
   IMAGE_ACCEPT: "image/*",
   ImageUploadFailedError: class ImageUploadFailedError extends Error {},
   MAX_UPLOAD_MB: 10,
-  isMediaImage: (value: any) =>
-    typeof value?.key === "string" && typeof value?.url === "string" && value.url.length > 0,
+  isMediaImage: (value: any) => {
+    if (!value || typeof value !== "object") return false;
+    if (!/^(products|landing|reviews)\//.test(value.key ?? "")) return false;
+    if (typeof value.url !== "string" || !/^https?:\/\//.test(value.url)) return false;
+    const size = (dimension: any) =>
+      dimension === null || (typeof dimension === "number" && Number.isInteger(dimension) && dimension > 0);
+    return size(value.width) && size(value.height);
+  },
   partitionUploadFiles: (files: File[]) => ({ accepted: files, unsupportedCount: 0, tooLargeCount: 0 }),
   uploadFailure: () => "upload_failed",
 }));
@@ -395,6 +403,30 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[0]!.sections.marquee.accentColor).toBe("#fedcba");
   });
 
+  it("gives the sparkle color its own Auto without clearing the text color", async () => {
+    await render();
+    const card = section("store.appearance_sections_title");
+    const color = card.querySelector<HTMLInputElement>(
+      'input[aria-label="store.appearance_section_marquee_color hex"]',
+    )!;
+    await setValue(color, "#123456", "input");
+    await act(async () => color.dispatchEvent(new FocusEvent("blur", { bubbles: true })));
+    const accent = card.querySelector<HTMLInputElement>(
+      'input[aria-label="store.appearance_section_marquee_accent_color hex"]',
+    )!;
+    await setValue(accent, "#f2c14e", "input");
+    await act(async () => accent.dispatchEvent(new FocusEvent("blur", { bubbles: true })));
+
+    const auto = card.querySelector<HTMLButtonElement>(
+      'button[aria-label="store.appearance_section_marquee_accent_color store.appearance_color_auto"]',
+    )!;
+    await click(auto);
+    await click(saveButton(card));
+
+    expect(seam.calls[0]!.sections.marquee.color).toBe("#123456");
+    expect(seam.calls[0]!.sections.marquee.accentColor).toBeNull();
+  });
+
   it("saves the hide-menu switch without touching colors or texts", async () => {
     await render();
     const toggle = [...host.querySelectorAll<HTMLButtonElement>('[role="switch"]')].find((node) =>
@@ -443,6 +475,23 @@ describe("AppearanceSettings", () => {
     seam.upload.mockResolvedValueOnce({
       key: "products/broken.webp",
       width: 1200,
+      height: 600,
+    } as any);
+
+    await uploadHero();
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector("img")).toBeNull();
+    expect(notify.error).toHaveBeenCalled();
+    expect(notify.success).not.toHaveBeenCalled();
+  });
+
+  it("rejects an upload answer with impossible dimensions", async () => {
+    await render();
+    seam.upload.mockResolvedValueOnce({
+      key: "products/broken.webp",
+      url: "https://cdn.test/products/broken.webp",
+      width: -1,
       height: 600,
     } as any);
 
