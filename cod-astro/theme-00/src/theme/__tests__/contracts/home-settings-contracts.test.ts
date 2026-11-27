@@ -295,7 +295,7 @@ describe("category photos", () => {
     expect(html).toContain("18vw, 62vw");
   });
 
-  it("caps a short row and stretches every tile to the same height", () => {
+  it("caps a short row, stretches every tile and wraps names without clipping", () => {
     const source = readFileSync(resolve(process.cwd(), "src/theme/components/home/CategoryCards.astro"), "utf8");
     expect(source).toContain("--tile-max: 16rem;");
     expect(source).toContain(".category-tiles > li { display: flex; width: 100%; max-width: var(--tile-max); justify-self: center; }");
@@ -304,7 +304,7 @@ describe("category photos", () => {
     expect(source).toContain(
       "width: min(100%, calc(var(--tiles) * var(--tile-max) + (var(--tiles) - 1) * var(--tile-gap)));",
     );
-    expect(source).toContain("-webkit-line-clamp: 2;");
+    expect(source).toContain("overflow-wrap: break-word;");
     expect(source).toContain(".category-all {");
   });
 

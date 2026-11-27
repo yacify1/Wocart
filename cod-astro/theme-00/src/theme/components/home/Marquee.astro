@@ -45,6 +45,14 @@ const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.
         </div>
       ))}
     </div>
+    <div class="marquee-static" aria-hidden="true">
+      {messages.map((message) => (
+        <span class="marquee-item">
+          {override.text ? <Fragment set:html={message} /> : message}
+          <Icon name="heroicons:sparkles-solid" />
+        </span>
+      ))}
+    </div>
   </div>
 )}
 
@@ -63,7 +71,27 @@ const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.
     font-weight: 600;
     white-space: nowrap;
   }
-  .marquee-item :global(svg) { width: 0.875rem; height: 0.875rem; color: var(--marquee-sparkle, var(--clr-highlight)); }
+  .marquee-item :global(svg) { width: 0.875rem; height: 0.875rem; flex: none; color: var(--marquee-sparkle, var(--clr-highlight)); }
+  .marquee-static { display: none; }
+  @media (max-width: 639px) {
+    .marquee { padding-inline: 1rem; }
+    .marquee-track { display: none; }
+    .marquee-static {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      column-gap: 1rem;
+      padding-block: 0.5rem;
+    }
+    .marquee-static .marquee-item {
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0;
+      white-space: normal;
+      text-align: center;
+    }
+  }
   @media (min-width: 1024px) { .marquee-item { padding-block: 1.125rem; font-size: var(--text-lg); } }
   @keyframes marquee { to { transform: translateX(-50%); } }
   :global([dir="rtl"]) .marquee-track { animation-name: marquee-rtl; }

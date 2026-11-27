@@ -64,8 +64,8 @@ const focus = own?.position ?? "50% 55%";
     font-weight: 600;
   }
   .hero-sub { margin-top: 0.75rem; max-width: 32rem; font-size: var(--text-md); color: var(--clr-text); }
-  .hero-actions { display: flex; gap: 0.625rem; margin-top: 1.5rem; }
-  .hero-actions > a { flex: 1; width: auto; padding-inline: 1rem; }
+  .hero-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 0.625rem; margin-top: 1.5rem; }
+  .hero-actions > a { flex: 1 1 9rem; min-width: 0; width: auto; padding-inline: 0.75rem; white-space: normal; }
   .no-photo .hero-copy { align-items: center; text-align: center; padding-block: 4rem; }
   .no-photo .hero-sub { margin-inline: auto; }
   .no-photo .hero-actions { justify-content: center; }

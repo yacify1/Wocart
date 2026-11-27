@@ -94,11 +94,12 @@ const style = ["padding-top: var(--safe-top)", sectionColorStyle(sectionColorsOf
     min-height: 2.5rem;
   }
   .announce-track { flex: 1; min-width: 0; display: grid; }
-  .announce-track :global(.announce-item) { grid-area: 1 / 1; min-width: 0; padding-block: 0.5rem; overflow-wrap: anywhere; }
+  .announce-track :global(.announce-item) { grid-area: 1 / 1; min-width: 0; padding-block: 0.5rem; padding-inline: 0.5rem; overflow-wrap: break-word; }
   .announce-track :global(.announce-item ~ .announce-item) { visibility: hidden; }
   .announce[data-ready] .announce-track :global(.announce-item) { visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; }
   .announce[data-ready] .announce-track :global(.announce-item[data-active]) { visibility: visible; opacity: 1; }
   .announce-track :global(.announce-link) { text-decoration: underline; text-decoration-color: color-mix(in oklab, currentColor 40%, transparent); }
+  .announce-turn[hidden] { display: none; }
   .announce-turn {
     display: inline-flex;
     align-items: center;

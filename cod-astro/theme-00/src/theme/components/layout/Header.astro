@@ -124,7 +124,7 @@ const headerStyle = [`--logo-w: ${logoWidth}px`, sectionColorStyle(headerColors)
 <style>
   .site-header {
     position: relative;
-    z-index: 50;
+    z-index: 60;
     border-bottom: 1px solid var(--clr-border);
   }
   .site-header.is-sticky {
@@ -133,6 +133,13 @@ const headerStyle = [`--logo-w: ${logoWidth}px`, sectionColorStyle(headerColors)
     background: var(--clr-nav-bg);
     backdrop-filter: saturate(1.6) blur(14px);
     -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  }
+  @media (max-width: 1023px) {
+    .site-header.is-sticky {
+      background: var(--clr-bg);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
   }
   .header-html {
     max-width: 100%;
