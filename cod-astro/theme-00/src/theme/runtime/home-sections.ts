@@ -50,7 +50,7 @@ export type HomeSectionState = {
   picked: PickedImage | null;
 };
 
-export type MarqueeSettings = { text: string | null; color: string | null };
+export type MarqueeSettings = { text: string | null; color: string | null; accentColor: string | null };
 
 const MARQUEE_TAGS = new Set(["a", "b", "strong", "i", "em", "u", "small", "span", "br"]);
 const MARQUEE_DISCARDED =
@@ -103,10 +103,14 @@ export function marqueeSettingsOf(store: StoreContext): MarqueeSettings {
   const values = settingsOf(store) as unknown as Record<string, unknown>;
   const text = values.homeMarqueeText;
   const color = values.homeMarqueeColor;
+  const accentColor = values.homeMarqueeAccentColor;
   const safeText = typeof text === "string" ? safeMarqueeHtml(text).trim() : "";
+  const hex = (value: unknown) =>
+    typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : null;
   return {
     text: safeText || null,
-    color: typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color) ? color : null,
+    color: hex(color),
+    accentColor: hex(accentColor),
   };
 }
 

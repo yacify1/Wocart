@@ -327,6 +327,7 @@ describe("logo alignment and home sections", () => {
         marquee: {
           text: '<script>alert(1)</script><img src="x" onerror="alert(2)"><strong>Free delivery</strong>',
           color: "#123456",
+          accentColor: "#fedcba",
         },
       },
     };
@@ -334,6 +335,7 @@ describe("logo alignment and home sections", () => {
     expect(appearanceSettingsToTheme(settings)).toMatchObject({
       homeMarqueeText: "<strong>Free delivery</strong>",
       homeMarqueeColor: "#123456",
+      homeMarqueeAccentColor: "#fedcba",
     });
     expect(appearanceSettingsToTheme(settings).homeMarqueeText).not.toContain("onerror");
     expect(appearanceSettingsProblem({ ...valid(), sections: { hero: { text: "not allowed" } } })).toMatch(
@@ -341,6 +343,9 @@ describe("logo alignment and home sections", () => {
     );
     expect(appearanceSettingsProblem({ ...valid(), sections: { marquee: { color: "gold" } } })).toMatch(
       /needs a hex color/,
+    );
+    expect(appearanceSettingsProblem({ ...valid(), sections: { marquee: { accentColor: "gold" } } })).toMatch(
+      /sparkles need a hex color/,
     );
     expect(
       appearanceSettingsProblem({ ...valid(), sections: { marquee: { text: "x".repeat(501) } } }),
@@ -352,27 +357,32 @@ describe("logo alignment and home sections", () => {
       ...appearanceSettingsToTheme(valid()),
       homeMarqueeText: "<strong>Free delivery</strong>",
       homeMarqueeColor: "#123456",
+      homeMarqueeAccentColor: "#fedcba",
     };
     expect(appearanceThemeSettingsOf(stored)?.sections?.marquee).toEqual({
       text: "<strong>Free delivery</strong>",
       color: "#123456",
+      accentColor: "#fedcba",
     });
 
     const current: AppearanceSettings = {
       ...valid(),
-      sections: { hero: { hidden: true }, marquee: { text: "Free delivery", color: "#abcdef" } },
+      sections: {
+        hero: { hidden: true },
+        marquee: { text: "Free delivery", color: "#abcdef", accentColor: "#fedcba" },
+      },
     };
     expect(
       mergeAppearance(current, { ...valid(), sections: { marquee: {} } }).settings?.sections?.marquee,
-    ).toEqual({ text: "Free delivery", color: "#abcdef" });
+    ).toEqual({ text: "Free delivery", color: "#abcdef", accentColor: "#fedcba" });
     const cleared = mergeAppearance(current, {
       ...valid(),
-      sections: { marquee: { text: null, color: null } },
+      sections: { marquee: { text: null, color: null, accentColor: null } },
     });
     expect(cleared.settings?.sections?.marquee).toBeUndefined();
     expect(cleared.settings?.sections?.hero).toEqual({ hidden: true });
     expect(appearanceSettingsToRemove(cleared.settings!)).toEqual(
-      expect.arrayContaining(["homeMarqueeText", "homeMarqueeColor"]),
+      expect.arrayContaining(["homeMarqueeText", "homeMarqueeColor", "homeMarqueeAccentColor"]),
     );
   });
 });

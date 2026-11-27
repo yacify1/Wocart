@@ -1,7 +1,15 @@
 import { useRef, useState } from "react";
 import { Loader2, RefreshCw, UploadCloud, X } from "lucide-react";
 import { Button } from "@/components/ui";
-import { IMAGE_ACCEPT, MAX_UPLOAD_MB, partitionUploadFiles, uploadFailure, type MediaImage } from "@/features/uploads/api";
+import {
+  IMAGE_ACCEPT,
+  ImageUploadFailedError,
+  MAX_UPLOAD_MB,
+  isMediaImage,
+  partitionUploadFiles,
+  uploadFailure,
+  type MediaImage,
+} from "@/features/uploads/api";
 import { useImageUpload } from "@/features/uploads/useImageUpload";
 import { useT } from "@/i18n/react";
 import { notify } from "@/lib/notify";
@@ -50,7 +58,9 @@ export function ImageUploader({
       return;
     }
     try {
-      onChange(await upload(accepted[0]));
+      const image = await upload(accepted[0]);
+      if (!isMediaImage(image)) throw new ImageUploadFailedError(500);
+      onChange(image);
       notify.success(common("feedback.uploaded"));
     } catch (cause) {
       notify.error(common(`feedback.${uploadFailure(cause)}`));

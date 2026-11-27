@@ -115,6 +115,7 @@
     "appearance_section_marquee_text": "Texte défilant / HTML",
     "appearance_section_marquee_text_hint": "Laissez vide pour utiliser les messages du thème. La mise en forme simple et les liens sûrs sont conservés.",
     "appearance_section_marquee_color": "Couleur du texte défilant",
+    "appearance_section_marquee_accent_color": "Couleur des étincelles",
     "appearance_section_category-cards": "Cartes des catégories",
     "appearance_section_product-tabs": "Onglets de produits",
     "appearance_section_image-banner": "Bannière d’offre",

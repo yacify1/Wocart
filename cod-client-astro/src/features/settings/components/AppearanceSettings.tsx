@@ -117,7 +117,7 @@ type SectionState = StoreAppearance["sections"][AppearanceHomeSectionKey];
 
 function emptySection(key: AppearanceHomeSectionKey): SectionState {
   return key === "marquee"
-    ? { hidden: false, image: null, text: "", color: null }
+    ? { hidden: false, image: null, text: "", color: null, accentColor: null }
     : { hidden: false, image: null };
 }
 
@@ -144,7 +144,11 @@ function sectionEdits(sections: StoreAppearance["sections"]): AppearanceSectionE
         hidden: sections[key]?.hidden ?? false,
         image: IMAGE_SECTION_KEYS.has(key) ? sectionImageOf(sections[key]?.image ?? null) : null,
         ...(key === "marquee"
-          ? { text: sections.marquee?.text ?? null, color: sections.marquee?.color ?? null }
+          ? {
+              text: sections.marquee?.text ?? null,
+              color: sections.marquee?.color ?? null,
+              accentColor: sections.marquee?.accentColor ?? null,
+            }
           : {}),
       },
     ]),
@@ -171,7 +175,11 @@ function sectionsFrom(saved: StoreAppearance): StoreAppearance["sections"] {
       hidden: savedSection?.hidden ?? false,
       image: savedSectionImage(savedSection?.image),
       ...(key === "marquee"
-        ? { text: savedSection?.text ?? "", color: savedSection?.color ?? null }
+        ? {
+            text: savedSection?.text ?? "",
+            color: savedSection?.color ?? null,
+            accentColor: savedSection?.accentColor ?? null,
+          }
         : {}),
     };
   }
@@ -825,6 +833,15 @@ export function AppearanceSettings() {
                       autoLabel={t("store.appearance_color_auto")}
                       onClear={() => updateSection(key, { color: null })}
                       onChange={(color) => updateSection(key, { color })}
+                    />
+                    <ColorField
+                      label={t("store.appearance_section_marquee_accent_color")}
+                      value={section?.accentColor ?? effectiveSchemeColor(current, "accent")}
+                      swatch={effectiveSchemeColor(current, "accent")}
+                      isAuto={!section?.accentColor}
+                      autoLabel={t("store.appearance_color_auto")}
+                      onClear={() => updateSection(key, { accentColor: null })}
+                      onChange={(accentColor) => updateSection(key, { accentColor })}
                     />
                   </div>
                 )}

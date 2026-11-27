@@ -97,11 +97,28 @@ export async function sendUpload(
   return { hostRef: fileId ?? null };
 }
 
+export function isMediaImage(value: unknown): value is MediaImage {
+  if (!value || typeof value !== "object") return false;
+  const image = value as Partial<MediaImage>;
+  const size = (dimension: number | null | undefined) =>
+    dimension === null || (typeof dimension === "number" && Number.isFinite(dimension));
+  return (
+    typeof image.key === "string" &&
+    image.key.length > 0 &&
+    typeof image.url === "string" &&
+    image.url.length > 0 &&
+    size(image.width) &&
+    size(image.height)
+  );
+}
+
 /** The upload, confirmed by the store's server: the image as every answer carries it. */
 export async function completeUpload(mediaId: string, report: { hostRef: string | null; width: number | null; height: number | null }): Promise<MediaImage> {
-  return (
-    await apiFetch<DataEnvelope<MediaImage>>(`/api/media/uploads/${encodeURIComponent(mediaId)}/complete`, json({ method: "POST", body: JSON.stringify(report) }))
+  const image = (
+    await apiFetch<DataEnvelope<unknown>>(`/api/media/uploads/${encodeURIComponent(mediaId)}/complete`, json({ method: "POST", body: JSON.stringify(report) }))
   ).data;
+  if (!isMediaImage(image)) throw new ImageUploadFailedError(500);
+  return image;
 }
 
 /** Same selection semantics the three uploaders had: unsupported types are

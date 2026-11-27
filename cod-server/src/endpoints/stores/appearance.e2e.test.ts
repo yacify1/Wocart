@@ -287,11 +287,13 @@ describe("the storefront config", () => {
       pageScheme: "scheme-1",
       homeMarqueeText: "<strong>Free delivery</strong>",
       homeMarqueeColor: "#123456",
+      homeMarqueeAccentColor: "#fedcba",
     });
 
     expect(appearanceThemeSettingsOf(await getThemeSettings(db, id, "theme-00"))?.sections?.marquee).toEqual({
       text: "<strong>Free delivery</strong>",
       color: "#123456",
+      accentColor: "#fedcba",
     });
   });
 

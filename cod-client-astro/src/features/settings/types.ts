@@ -82,7 +82,13 @@ export interface StoreAppearance {
   /** One entry for every home section, including an image ready to preview. */
   sections: Record<
     AppearanceHomeSectionKey,
-    { hidden: boolean; image: MediaImage | null; text?: string | null; color?: string | null }
+    {
+      hidden: boolean;
+      image: MediaImage | null;
+      text?: string | null;
+      color?: string | null;
+      accentColor?: string | null;
+    }
   >;
   detailColors: AppearanceDetailColors;
   /** Saved text edits, `{ ar: { heroTitle: "…" } }`. */

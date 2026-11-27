@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Scrolling text section can carry a merchant's own text and simple HTML,
   with a color that follows the page scheme until a color is chosen. Safe
   formatting and links are kept; scripts and unknown tags are dropped.
+  A second Auto color controls the sparkle icons beside each message, so the
+  text and icons can carry different colors without fighting over one field.
 
 ### Changed
 
@@ -79,6 +81,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- An upload answer that is not a usable image is rejected before it reaches the
+  dashboard's state, so a broken Hero upload reports a failure instead of
+  showing a success toast and then the Settings page's load-failure fallback.
 - A Hero picture uploaded or removed in Appearance stays put when another
   settings card is saved, and an incomplete save answer no longer drops the
   Settings page into its error state.

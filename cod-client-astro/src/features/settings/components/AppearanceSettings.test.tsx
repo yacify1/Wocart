@@ -49,7 +49,10 @@ vi.mock("@/i18n/react", () => ({
 }));
 vi.mock("@/features/uploads/api", () => ({
   IMAGE_ACCEPT: "image/*",
+  ImageUploadFailedError: class ImageUploadFailedError extends Error {},
   MAX_UPLOAD_MB: 10,
+  isMediaImage: (value: any) =>
+    typeof value?.key === "string" && typeof value?.url === "string" && value.url.length > 0,
   partitionUploadFiles: (files: File[]) => ({ accepted: files, unsupportedCount: 0, tooLargeCount: 0 }),
   uploadFailure: () => "upload_failed",
 }));
@@ -58,6 +61,7 @@ vi.mock("@/lib/notify", () => ({ notify: { success: vi.fn(), error: vi.fn() } })
 
 import { APPEARANCE_DEFAULT_SCHEMES } from "../../../../../cod-shared/stores/appearance";
 import { ErrorBoundary } from "@/components/ui";
+import { notify } from "@/lib/notify";
 import { AppearanceSettings, autoDetailSwatch } from "./AppearanceSettings";
 
 const appearance = () => ({
@@ -86,6 +90,8 @@ beforeEach(() => {
   seam.response = null;
   seam.saveImpl = null;
   seam.upload.mockReset();
+  vi.mocked(notify.error).mockClear();
+  vi.mocked(notify.success).mockClear();
   seam.upload.mockResolvedValue({
     key: "products/hero.webp",
     url: "https://cdn.test/products/hero.webp",
@@ -374,6 +380,21 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[1]!.sections.marquee.color).toBeNull();
   });
 
+  it("saves the scrolling text's sparkle color next to the text color", async () => {
+    await render();
+    const card = section("store.appearance_sections_title");
+    const accent = card.querySelector<HTMLInputElement>(
+      'input[aria-label="store.appearance_section_marquee_accent_color hex"]',
+    )!;
+    await setValue(accent, "#fedcba", "input");
+    await act(async () => accent.dispatchEvent(new FocusEvent("blur", { bubbles: true })));
+
+    await click(saveButton(card));
+    expect(seam.calls[0]!.sections.marquee.text).toBe("");
+    expect(seam.calls[0]!.sections.marquee.color).toBeNull();
+    expect(seam.calls[0]!.sections.marquee.accentColor).toBe("#fedcba");
+  });
+
   it("saves the hide-menu switch without touching colors or texts", async () => {
     await render();
     const toggle = [...host.querySelectorAll<HTMLButtonElement>('[role="switch"]')].find((node) =>
@@ -415,6 +436,22 @@ describe("AppearanceSettings", () => {
     expect(autoDetailSwatch("oldPrice", APPEARANCE_DEFAULT_SCHEMES[0])).toBe(
       "color-mix(in oklab, #3b4250 74%, #ffffff)",
     );
+  });
+
+  it("rejects a malformed upload answer before it can break the Settings island", async () => {
+    await render();
+    seam.upload.mockResolvedValueOnce({
+      key: "products/broken.webp",
+      width: 1200,
+      height: 600,
+    } as any);
+
+    await uploadHero();
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector("img")).toBeNull();
+    expect(notify.error).toHaveBeenCalled();
+    expect(notify.success).not.toHaveBeenCalled();
   });
 
   it("keeps a just-uploaded hero picture when another Appearance card is saved", async () => {

@@ -20,7 +20,11 @@ const readable = override.text
   ? override.text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
   : messages.join(" — ");
 const seconds = { slow: 48, normal: 32, fast: 20 }[speed] ?? 32;
-const style = [`--marquee-time: ${seconds}s`, ...(override.color ? [`color: ${override.color}`] : [])].join("; ");
+const style = [
+  `--marquee-time: ${seconds}s`,
+  ...(override.color ? [`color: ${override.color}`] : []),
+  ...(override.accentColor ? [`--marquee-sparkle: ${override.accentColor}`] : []),
+].join("; ");
 const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.length))) }, () => messages).flat();
 ---
 
@@ -57,7 +61,7 @@ const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.
     font-weight: 600;
     white-space: nowrap;
   }
-  .marquee-item :global(svg) { width: 0.875rem; height: 0.875rem; }
+  .marquee-item :global(svg) { width: 0.875rem; height: 0.875rem; color: var(--marquee-sparkle, var(--clr-accent)); }
   @media (min-width: 1024px) { .marquee-item { padding-block: 1.125rem; font-size: var(--text-lg); } }
   @keyframes marquee { to { transform: translateX(-50%); } }
   :global([dir="rtl"]) .marquee-track { animation-name: marquee-rtl; }

@@ -155,6 +155,14 @@ describe("completeUpload", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body as string)).toEqual({ hostRef: "ik-file-1", width: 10, height: 20 });
   });
+
+  it("refuses a completion answer that is not a usable image", async () => {
+    seam.apiFetch.mockResolvedValue({ success: true, data: { key: "products/broken.webp" } });
+
+    await expect(
+      completeUpload("m/1", { hostRef: "ik-file-1", width: 10, height: 20 }),
+    ).rejects.toBeInstanceOf(ImageUploadFailedError);
+  });
 });
 
 describe("uploadImageFile (ticket → send → complete)", () => {
