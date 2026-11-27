@@ -159,7 +159,7 @@ function SettingsContent() {
 function Gated() {
   const t = useT("settings");
   return (
-    <DashboardPage>
+    <DashboardPage wide>
       <PageHeader title={t("store.title")} />
       <SettingsContent />
     </DashboardPage>

@@ -403,7 +403,7 @@ function ColorField({
           className="size-8 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
         />
       )}
-      <label id={labelId} htmlFor={hexId} className="min-w-0 flex-1 basis-20 break-words text-sm leading-5 text-foreground">
+      <label id={labelId} htmlFor={hexId} className="min-w-0 flex-1 basis-32 break-words text-sm leading-5 text-foreground">
         {label}
       </label>
       <Input
@@ -414,7 +414,7 @@ function ColorField({
         aria-label={`${ariaLabel} hex`}
         spellCheck={false}
         maxLength={7}
-        className="h-8 w-24 shrink-0 px-2 font-mono text-xs uppercase"
+        className="h-8 w-28 shrink-0 px-2 font-mono text-xs uppercase"
       />
       {onClear && (
         <button
@@ -442,6 +442,7 @@ function SectionColorFields({
   colors,
   onChange,
   wide = false,
+  rows = false,
   children,
 }: {
   label: string;
@@ -450,6 +451,7 @@ function SectionColorFields({
   colors: AppearanceSectionColors;
   onChange: (field: AppearanceSectionColorField, value: string | null) => void;
   wide?: boolean;
+  rows?: boolean;
   children?: ReactNode;
 }) {
   const t = useT("settings");
@@ -464,11 +466,11 @@ function SectionColorFields({
     effectiveSchemeColor(current, field === "color" ? "text" : field === "backgroundColor" ? "background" : "button");
 
   return (
-    <div className={`grid gap-2 sm:grid-cols-2 ${wide ? "lg:grid-cols-3" : ""}`}>
+    <div className={rows ? "space-y-2" : `grid gap-2 sm:grid-cols-2 ${wide ? "lg:grid-cols-3" : ""}`}>
       {APPEARANCE_SECTION_COLOR_FIELDS.map((field) => (
         <ColorField
           key={field}
-          compact
+          compact={!rows}
           label={t(SECTION_COLOR_LABEL_KEYS[field])}
           ariaLabel={ariaLabelFor(field)}
           value={colors[field] ?? fallback(field)}
@@ -603,45 +605,6 @@ function AppearancePreview({
               {t("store.appearance_preview_secondary_cta")}
             </span>
           </div>
-        </div>
-      </div>
-      <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-2">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {t("store.appearance_preview_sections")}
-        </span>
-        <div className="grid grid-cols-2 gap-1">
-          {[
-            ...APPEARANCE_CHROME_KEYS.map((key) => ({
-              key,
-              label: t(CHROME_LABEL_KEYS[key]),
-              colors: chromeColors[key] ?? {},
-            })),
-            ...APPEARANCE_HOME_SECTIONS.map(({ key }) => ({
-              key,
-              label: t(`store.appearance_section_${key}`),
-              colors: sections[key] ?? {},
-            })),
-          ].map(({ key, label, colors: sectionColors }) => {
-            const background = sectionColors.backgroundColor ?? colors.background;
-            const text = sectionColors.color ?? readableOn(background);
-            const button = sectionColors.buttonColor;
-            return (
-              <div
-                key={key}
-                className="flex min-w-0 items-center gap-1 rounded-md border border-border px-1.5 py-1"
-                style={{ background, color: text }}
-              >
-                <span className="min-w-0 break-words text-[9px] font-medium leading-tight">{label}</span>
-                {button && (
-                  <span
-                    aria-hidden="true"
-                    className="ms-auto size-2 shrink-0 rounded-full border border-black/10"
-                    style={{ background: button }}
-                  />
-                )}
-              </div>
-            );
-          })}
         </div>
       </div>
     </section>
@@ -842,7 +805,7 @@ export function AppearanceSettings() {
   const previewCta = localeDrafts.heroCtaPrimary?.trim() || t("store.appearance_preview_cta");
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-6">
         <div className="rounded-xl bg-card px-5 py-4 shadow-card">
         <h2 className="text-sm font-semibold text-foreground">{t("store.appearance_title")}</h2>
@@ -1098,7 +1061,7 @@ export function AppearanceSettings() {
         subtitle={t("store.appearance_sections_subtitle")}
         onSave={saveSections}
       >
-        <div className="grid gap-3 xl:grid-cols-2">
+        <div className="space-y-3">
           {APPEARANCE_HOME_SECTIONS.map(({ key }) => {
             const section = sections[key];
             const label = t(`store.appearance_section_${key}`);
@@ -1138,6 +1101,7 @@ export function AppearanceSettings() {
                 )}
                 <div className="mt-2 border-t border-border pt-2">
                   <SectionColorFields
+                    rows
                     label={label}
                     sectionKey={key}
                     current={current}
@@ -1146,7 +1110,6 @@ export function AppearanceSettings() {
                   >
                     {key === "marquee" && (
                       <ColorField
-                        compact
                         label={t("store.appearance_section_marquee_accent_color")}
                         ariaLabel={t("store.appearance_section_marquee_accent_color")}
                         value={section?.accentColor ?? MARQUEE_SECOND_AUTO}
@@ -1241,18 +1204,16 @@ export function AppearanceSettings() {
           {t("store.appearance_reload_hint")}
         </p>
       </div>
-      <aside className="order-first min-w-0 self-start xl:order-none">
-        <div className="xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pe-1">
-          <AppearancePreview
-            scheme={current}
-            detailColors={detailColors}
-            sections={sections}
-            chromeColors={chromeColors}
-            title={previewTitle}
-            subtitle={previewSubtitle}
-            cta={previewCta}
-          />
-        </div>
+      <aside className="order-first min-w-0 w-full self-start xl:order-none xl:sticky xl:top-6">
+        <AppearancePreview
+          scheme={current}
+          detailColors={detailColors}
+          sections={sections}
+          chromeColors={chromeColors}
+          title={previewTitle}
+          subtitle={previewSubtitle}
+          cta={previewCta}
+        />
       </aside>
     </div>
   );
