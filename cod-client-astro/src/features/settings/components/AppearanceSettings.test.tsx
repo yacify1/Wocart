@@ -89,6 +89,7 @@ const appearance = () => ({
   searchEnabled: true,
   headerHtml: "",
   logoAlignment: "right",
+  contact: {},
   detailColors: {},
   texts: {},
 });
@@ -286,6 +287,35 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[0]!.logoAlignment).toBe("left");
     expect(seam.calls[0]!.colorSchemes).toBeUndefined();
     expect(seam.calls[0]!.texts).toBeUndefined();
+  });
+
+  it("saves contact links with the storefront controls and shows saved links as plain details", async () => {
+    seam.appearance = {
+      ...appearance(),
+      contact: {
+        contactPhone: "tel:+21355123456",
+        contactEmail: "mailto:hello@example.dz",
+        instagramUrl: "https://instagram.com/shop",
+      },
+    };
+    await render();
+    const phone = host.querySelector<HTMLInputElement>('input[placeholder="store.appearance_contact_phone_placeholder"]')!;
+    const email = host.querySelector<HTMLInputElement>('input[placeholder="store.appearance_contact_email_placeholder"]')!;
+    const instagram = host.querySelector<HTMLInputElement>('input[placeholder="store.appearance_contact_instagram_placeholder"]')!;
+    expect(phone.value).toBe("+21355123456");
+    expect(email.value).toBe("hello@example.dz");
+    expect(instagram.value).toBe("https://instagram.com/shop");
+
+    await setValue(phone, "+213 55 99 88 77", "input");
+    await setValue(instagram, "@newshop", "input");
+    await click(saveButton(section("store.appearance_storefront_title")));
+
+    expect(seam.calls[0]!.contact).toMatchObject({
+      contactPhone: "+213 55 99 88 77",
+      contactEmail: "mailto:hello@example.dz",
+      instagramUrl: "@newshop",
+    });
+    expect(seam.calls[0]!.colorSchemes).toBeUndefined();
   });
 
   it("saves the header groups' colors with the storefront controls", async () => {

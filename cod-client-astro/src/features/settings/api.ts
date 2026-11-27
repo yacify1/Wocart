@@ -2,6 +2,7 @@ import { ApiError, apiFetch } from "@/lib/api";
 import type {
   AppearanceChromeColors,
   AppearanceColorScheme,
+  AppearanceContact,
   AppearanceDetailColors,
   AppearanceLogoAlignment,
   AppearanceSectionEdits,
@@ -47,6 +48,7 @@ export interface SaveAppearanceInput {
   logoAlignment?: AppearanceLogoAlignment;
   sections?: AppearanceSectionEdits;
   chromeColors?: AppearanceChromeColors;
+  contact?: AppearanceContact;
   detailColors?: AppearanceDetailColors;
   /** One language's text edits; an empty string removes that edit. */
   texts?: { locale: StoreLocale; values: Record<string, string> };

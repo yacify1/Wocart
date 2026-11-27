@@ -11,6 +11,7 @@ import type { StoreAppearance } from "@/features/settings/types";
 import {
   APPEARANCE_CHROME_KEYS,
   APPEARANCE_COLOR_ROLES,
+  APPEARANCE_CONTACT_KEYS,
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEADER_HTML_MAX,
   APPEARANCE_HOME_SECTIONS,
@@ -27,6 +28,8 @@ import {
   type AppearanceColorRole,
   type AppearanceColorScheme,
   type AppearanceChromeColors,
+  type AppearanceContact,
+  type AppearanceContactKey,
   type AppearanceDetailColorKey,
   type AppearanceDetailColors,
   type AppearanceHomeSectionKey,
@@ -77,6 +80,31 @@ const DETAIL_COLOR_FIELDS: { key: AppearanceDetailColorKey; labelKey: string }[]
   { key: "oldPrice", labelKey: "store.appearance_color_oldPrice" },
   { key: "newPrice", labelKey: "store.appearance_color_newPrice" },
 ];
+
+const CONTACT_FIELDS: { key: AppearanceContactKey; labelKey: string; placeholderKey: string }[] = [
+  { key: "contactPhone", labelKey: "store.appearance_contact_phone", placeholderKey: "store.appearance_contact_phone_placeholder" },
+  { key: "contactEmail", labelKey: "store.appearance_contact_email", placeholderKey: "store.appearance_contact_email_placeholder" },
+  { key: "instagramUrl", labelKey: "store.appearance_contact_instagram", placeholderKey: "store.appearance_contact_instagram_placeholder" },
+  { key: "facebookUrl", labelKey: "store.appearance_contact_facebook", placeholderKey: "store.appearance_contact_facebook_placeholder" },
+  { key: "tiktokUrl", labelKey: "store.appearance_contact_tiktok", placeholderKey: "store.appearance_contact_tiktok_placeholder" },
+];
+
+function safeContact(value: unknown): AppearanceContact {
+  const contact: AppearanceContact = {};
+  if (!value || typeof value !== "object") return contact;
+  for (const key of APPEARANCE_CONTACT_KEYS) {
+    const link = (value as Record<string, unknown>)[key];
+    if (typeof link === "string") contact[key] = link;
+  }
+  return contact;
+}
+
+function contactFieldValue(key: AppearanceContactKey, href: string | undefined): string {
+  const value = href ?? "";
+  if (key === "contactPhone") return value.replace(/^tel:/i, "");
+  if (key === "contactEmail") return value.replace(/^mailto:/i, "");
+  return value;
+}
 
 function mixHex(from: string, to: string, weight: number): string {
   const channel = (hex: string, at: number) => Number.parseInt(hex.slice(at, at + 2), 16);
@@ -639,6 +667,7 @@ export function AppearanceSettings() {
   });
   const [sections, setSections] = useState<StoreAppearance["sections"]>(emptySections);
   const [chromeColors, setChromeColors] = useState<AppearanceChromeColors>(() => safeChromeColors({}));
+  const [contact, setContact] = useState<AppearanceContact>({});
   const sectionVersion = useRef(0);
 
   function applySaved(saved: StoreAppearance, initial = false, sectionsSaved = false) {
@@ -675,6 +704,7 @@ export function AppearanceSettings() {
       logoAlignment: saved.logoAlignment ?? controls.logoAlignment,
     });
     setChromeColors(safeChromeColors(saved.chromeColors));
+    setContact(safeContact(saved.contact));
     if (initial || sectionsSaved) setSections(sectionsFrom(saved));
   }
 
@@ -771,6 +801,10 @@ export function AppearanceSettings() {
     setChromeColors((all) => ({ ...all, [key]: { ...all[key], [field]: value } }));
   }
 
+  function updateContact(key: AppearanceContactKey, value: string) {
+    setContact((all) => ({ ...all, [key]: value }));
+  }
+
   async function saveControls() {
     const payload: SaveAppearanceInput = {
       hideLogo: controls.hideLogo,
@@ -780,6 +814,7 @@ export function AppearanceSettings() {
       headerHtml: controls.headerHtml,
       logoAlignment: controls.logoAlignment,
       chromeColors,
+      contact,
     };
     applySaved(await saveAppearance(payload));
   }
@@ -1041,6 +1076,26 @@ export function AppearanceSettings() {
                 {t("store.appearance_control_headerHtml_hint")}
               </p>
             </Field>
+          </div>
+          <div className="space-y-3 border-t border-border pt-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t("store.appearance_group_contact")}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("store.appearance_contact_hint")}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {CONTACT_FIELDS.map((field) => (
+                <Field key={field.key} label={t(field.labelKey)}>
+                  <Input
+                    type="text"
+                    value={contactFieldValue(field.key, contact[field.key])}
+                    placeholder={t(field.placeholderKey)}
+                    onChange={(event) => updateContact(field.key, event.target.value)}
+                  />
+                </Field>
+              ))}
+            </div>
           </div>
           <div className="space-y-4 border-t border-border pt-4">
             {APPEARANCE_CHROME_KEYS.map((key) => (

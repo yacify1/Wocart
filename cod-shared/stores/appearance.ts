@@ -33,6 +33,17 @@ export const APPEARANCE_CHROME_KEYS = ["announcement", "header", "headerHtml"] a
 export type AppearanceChromeKey = (typeof APPEARANCE_CHROME_KEYS)[number];
 export type AppearanceChromeColors = Partial<Record<AppearanceChromeKey, AppearanceSectionColors>>;
 
+export const APPEARANCE_CONTACT_KEYS = [
+  "contactPhone",
+  "contactEmail",
+  "instagramUrl",
+  "facebookUrl",
+  "tiktokUrl",
+] as const;
+export type AppearanceContactKey = (typeof APPEARANCE_CONTACT_KEYS)[number];
+export type AppearanceContact = Partial<Record<AppearanceContactKey, string>>;
+export const APPEARANCE_LINK_MAX = 2048;
+
 const DETAIL_COLOR_FLAT_KEYS: Record<AppearanceDetailColorKey, string> = {
   secondaryButton: "secondaryButtonColor",
   offer: "offerColor",
@@ -130,6 +141,8 @@ export interface AppearanceSettings {
   sections?: AppearanceSectionEdits;
   /** Per-section colors for the announcement, the header and the header HTML strip. */
   chromeColors?: AppearanceChromeColors;
+  /** Safe contact and social links the storefront shows as small action buttons. */
+  contact?: AppearanceContact;
   detailColors?: AppearanceDetailColors;
 }
 
@@ -337,6 +350,67 @@ export const APPEARANCE_TEXT_LIMITS: Record<AppearanceTextKey, { max: number; mu
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/** A link target safe to render as an `href`, matching the theme SDK's `url` fields. */
+export function appearanceLinkProblem(value: unknown): string | null {
+  if (typeof value !== "string") return "must be a link";
+  if (!value || value.length > APPEARANCE_LINK_MAX) return `needs 1–${APPEARANCE_LINK_MAX} characters`;
+  if (/[\s\\\u0000-\u001f\u007f]/.test(value)) return "cannot hold spaces or control characters";
+  if (value.startsWith("/")) return value.startsWith("//") ? "cannot be protocol-relative" : null;
+  if (value.startsWith("#") || value.startsWith("?")) return null;
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(value)?.[1]?.toLowerCase();
+  if (scheme === "http" || scheme === "https") {
+    return /^https?:\/\/[a-z0-9.-]+(:\d{1,5})?([/?#]|$)/i.test(value)
+      ? null
+      : "needs a full http or https address";
+  }
+  if (scheme === "mailto" || scheme === "tel") {
+    return value.length > scheme.length + 1 ? null : "needs an address or number";
+  }
+  return "must be a site path, http(s), mailto, tel, #fragment or ?query link";
+}
+
+export function appearanceContactProblem(value: unknown): string | null {
+  if (value === undefined) return null;
+  if (!isRecord(value)) return "contact must be an object";
+  const unknown = Object.keys(value).find((key) => !(APPEARANCE_CONTACT_KEYS as readonly string[]).includes(key));
+  if (unknown !== undefined) return `"${unknown}" is not a contact link`;
+  for (const key of APPEARANCE_CONTACT_KEYS) {
+    const link = value[key];
+    if (link === undefined || link === "") continue;
+    if (typeof link === "string" && appearanceContactHref(key, link)) continue;
+    return `"${key}" must be a phone number, email address or social link this theme can open`;
+  }
+  return null;
+}
+
+/** Turn a merchant's phone, email or social handle into a link the theme can render safely. */
+export function appearanceContactHref(key: AppearanceContactKey, raw: string): string {
+  const value = raw.trim();
+  if (!value) return "";
+  if (key === "contactPhone") {
+    const number = value.replace(/^tel:/i, "").replace(/[^\d+]/g, "");
+    return /^\+?\d{6,20}$/.test(number) ? `tel:${number}` : "";
+  }
+  if (key === "contactEmail") {
+    const email = value.replace(/^mailto:/i, "");
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? `mailto:${email}` : "";
+  }
+  const host = key === "instagramUrl" ? "instagram.com" : key === "facebookUrl" ? "facebook.com" : "tiktok.com";
+  const url = /^https?:\/\/([^/?#]+)(\/[^?#]*)?([?#].*)?$/i.exec(value);
+  if (url) {
+    const hostname = url[1]!.replace(/^www\./i, "").toLowerCase();
+    if (hostname !== host || !url[2] || url[2] === "/") return "";
+    const href = `https://${hostname}${url[2]}${url[3] ?? ""}`;
+    return appearanceLinkProblem(href) === null ? href : "";
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value) || /[/?#]/.test(value)) return "";
+  const handle = value.replace(/^@/, "");
+  if (!handle || !/^[a-z0-9._-]+$/i.test(handle)) return "";
+  const prefix = key === "tiktokUrl" ? "@" : "";
+  const href = `https://${host}/${prefix}${handle}`;
+  return appearanceLinkProblem(href) === null ? href : "";
+}
+
 const SECTION_KEYS: readonly string[] = APPEARANCE_HOME_SECTIONS.map((section) => section.key);
 
 export function appearanceImageProblem(value: unknown): string | null {
@@ -491,6 +565,10 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
     const color = settings.detailColors?.[key];
     if (color) flat[flatKey] = color;
   }
+  for (const key of APPEARANCE_CONTACT_KEYS) {
+    const link = settings.contact?.[key];
+    if (link && appearanceLinkProblem(link) === null) flat[key] = link;
+  }
   return flat;
 }
 
@@ -515,6 +593,12 @@ export function appearanceSettingsToRemove(settings: AppearanceSettings): string
   }
   for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
     if (!settings.detailColors?.[key]) removed.push(flatKey);
+  }
+  if (settings.contact !== undefined) {
+    for (const key of APPEARANCE_CONTACT_KEYS) {
+      const link = settings.contact[key];
+      if (!link || appearanceLinkProblem(link) !== null) removed.push(key);
+    }
   }
   return removed;
 }
@@ -549,6 +633,11 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
     }
     if (Object.keys(colors).length > 0) chromeColors[key] = colors;
   }
+  const contact: AppearanceContact = {};
+  for (const key of APPEARANCE_CONTACT_KEYS) {
+    const link = stored[key];
+    if (typeof link === "string" && appearanceLinkProblem(link) === null) contact[key] = link;
+  }
   if (stored.hideHeroImages === true) {
     if (stored.homeHeroHidden === undefined) sections.hero = { ...sections.hero, hidden: true };
     if (stored.homeImageBannerHidden === undefined) {
@@ -576,6 +665,7 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
       : "right",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
     chromeColors: Object.keys(chromeColors).length > 0 ? chromeColors : undefined,
+    contact: Object.keys(contact).length > 0 ? contact : undefined,
     detailColors: detailColorsOf(stored),
   };
   return appearanceSettingsProblem(candidate) === null ? (candidate as AppearanceSettings) : null;
@@ -648,6 +738,8 @@ export function appearanceSettingsProblem(value: unknown): string | null {
   }
   const chromeProblem = appearanceChromeColorsProblem(value.chromeColors);
   if (chromeProblem) return chromeProblem;
+  const contactProblem = appearanceContactProblem(value.contact);
+  if (contactProblem) return contactProblem;
   const detailProblem = appearanceDetailColorsProblem(value.detailColors);
   if (detailProblem) return detailProblem;
   return null;
@@ -706,6 +798,13 @@ export function mergeAppearance(
     if (Object.keys(colors).length > 0) chromeColors[key] = colors;
     else delete chromeColors[key];
   }
+  const contact: AppearanceContact = current?.contact ? { ...current.contact } : {};
+  for (const key of APPEARANCE_CONTACT_KEYS) {
+    if (!next.contact || !Object.prototype.hasOwnProperty.call(next.contact, key)) continue;
+    const href = appearanceContactHref(key, next.contact[key] ?? "");
+    if (href) contact[key] = href;
+    else delete contact[key];
+  }
   const controls = {
     hideLogo: next.hideLogo ?? current?.hideLogo ?? false,
     hideHeaderText: next.hideHeaderText ?? current?.hideHeaderText ?? false,
@@ -715,6 +814,7 @@ export function mergeAppearance(
     logoAlignment: next.logoAlignment ?? current?.logoAlignment ?? "right",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
     chromeColors: Object.keys(chromeColors).length > 0 ? chromeColors : undefined,
+    contact: Object.keys(contact).length > 0 ? contact : undefined,
     detailColors: next.detailColors !== undefined ? next.detailColors : current?.detailColors,
   };
   if (!current || current.colorSchemes.length === 0) return { settings: { ...next, ...controls } };

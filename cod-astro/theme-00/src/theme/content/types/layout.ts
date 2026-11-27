@@ -23,6 +23,10 @@ export type LayoutStrings = {
   footerRights: string;
   /** The footer's WhatsApp button, when the store's widget has no label of its own. */
   footerWhatsapp: string;
+  /** The header's contact strip and its phone and email action links. */
+  contactLinks: string;
+  contactCall: string;
+  contactMail: string;
   /** A social link's accessible name, by network, when the merchant gave it no label. */
   socialInstagram: string;
   socialFacebook: string;

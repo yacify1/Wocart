@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEX,
+  appearanceContactHref,
   appearanceDetailColorsProblem,
   appearanceLocaleProblem,
   appearanceSettingsOf,
@@ -395,6 +396,64 @@ describe("logo alignment and home sections", () => {
         "homeMarqueeAccentColor",
         "homeMarqueeBackgroundColor",
       ]),
+    );
+  });
+});
+
+describe("contact and social links", () => {
+  it("turns a phone, email and handles into safe links, and rejects anything else", () => {
+    expect(appearanceContactHref("contactPhone", "+213 55 12 34 56")).toBe("tel:+21355123456");
+    expect(appearanceContactHref("contactEmail", " hello@example.dz ")).toBe("mailto:hello@example.dz");
+    expect(appearanceContactHref("instagramUrl", "@shop.dz")).toBe("https://instagram.com/shop.dz");
+    expect(appearanceContactHref("facebookUrl", "https://www.facebook.com/shop.dz")).toBe("https://facebook.com/shop.dz");
+    expect(appearanceContactHref("instagramUrl", "https://www.instagram.com/shop.dz/reels")).toBe("https://instagram.com/shop.dz/reels");
+    expect(appearanceContactHref("tiktokUrl", "shop.dz")).toBe("https://tiktok.com/@shop.dz");
+    expect(appearanceContactHref("contactPhone", "javascript:alert(1)")).toBe("");
+    expect(appearanceContactHref("contactEmail", "not-an-email")).toBe("");
+    expect(appearanceContactHref("instagramUrl", "https://evil.test/instagram.com/shop")).toBe("");
+  });
+
+  it("writes, reads and clears each link as a flat theme setting", () => {
+    const current: AppearanceSettings = {
+      ...valid(),
+      contact: {
+        contactPhone: "tel:+21355123456",
+        contactEmail: "mailto:hello@example.dz",
+        instagramUrl: "https://instagram.com/shop.dz",
+      },
+    };
+    expect(appearanceSettingsProblem(current)).toBeNull();
+    const flat = appearanceSettingsToTheme(current);
+    expect(flat).toMatchObject({
+      contactPhone: "tel:+21355123456",
+      contactEmail: "mailto:hello@example.dz",
+      instagramUrl: "https://instagram.com/shop.dz",
+    });
+    expect(appearanceThemeSettingsOf(flat)?.contact).toEqual(current.contact);
+
+    const saved = mergeAppearance(current, {
+      colorSchemes: current.colorSchemes,
+      pageScheme: current.pageScheme,
+      contact: { instagramUrl: "", tiktokUrl: "@shop.dz" },
+    });
+    expect(saved.settings?.contact).toEqual({
+      contactPhone: "tel:+21355123456",
+      contactEmail: "mailto:hello@example.dz",
+      tiktokUrl: "https://tiktok.com/@shop.dz",
+    });
+    expect(appearanceSettingsToRemove(saved.settings!)).toContain("instagramUrl");
+    expect(appearanceSettingsToRemove(saved.settings!)).not.toContain("contactPhone");
+  });
+
+  it("refuses unsafe links and unknown contact fields", () => {
+    expect(appearanceSettingsProblem({ ...valid(), contact: { contactPhone: "javascript:alert(1)" } })).toMatch(
+      /must be a phone number/,
+    );
+    expect(appearanceSettingsProblem({ ...valid(), contact: { instagramUrl: "https://facebook.com/shop" } })).toMatch(
+      /must be a phone number/,
+    );
+    expect(appearanceSettingsProblem({ ...valid(), contact: { twitterUrl: "https://x.test" } })).toMatch(
+      /not a contact link/,
     );
   });
 });

@@ -20,9 +20,22 @@ type Props = InferProps<typeof header> & { storeMenu: StoreMenu | null };
 const { storeMenu, logoPosition, logoWidth, sticky, showSearch, showLanguage, scheme } = Astro.props;
 const store = Astro.locals.store;
 const { config, content } = store;
-const { hideLogo, hideHeaderText, hideMenu, searchEnabled, headerHtml, logoAlignment } = settingsOf(store);
+const { hideLogo, hideHeaderText, hideMenu, searchEnabled, headerHtml, logoAlignment, contactPhone, contactEmail, instagramUrl, facebookUrl, tiktokUrl } = settingsOf(store);
 const headerColors = sectionColorsOf(store, "header");
 const headerHtmlColors = sectionColorsOf(store, "headerHtml");
+const contactLinks = [
+  { href: contactPhone, label: content.contactCall },
+  { href: contactEmail, label: content.contactMail },
+  { href: instagramUrl, label: content.socialInstagram },
+  { href: facebookUrl, label: content.socialFacebook },
+  { href: tiktokUrl, label: content.socialTiktok },
+]
+  .filter((link): link is { href: string; label: string } => typeof link.href === "string" && link.href.length > 0)
+  .map((link) => ({
+    ...link,
+    href: link.href.startsWith("/") && !link.href.startsWith("//") ? store.href(link.href) : link.href,
+    external: /^https?:\/\//i.test(link.href),
+  }));
 const links = hideMenu ? [] : menuLinks(storeMenu, store.href, store.pathname) ?? [];
 const centered = logoPosition === "center";
 const showLogo = !hideLogo && (Boolean(config.logo) || !hideHeaderText);
@@ -34,7 +47,18 @@ const headerStyle = [`--logo-w: ${logoWidth}px`, sectionColorStyle(headerColors)
   data-logo-align={logoAlignment}
   style={headerStyle}
 >
-  {headerHtml && <div class="header-html" style={sectionColorStyle(headerHtmlColors) || undefined} set:html={headerHtml} />}
+  {(headerHtml || contactLinks.length > 0) && (
+    <div class="header-html" style={sectionColorStyle(headerHtmlColors) || undefined}>
+      {headerHtml && <Fragment set:html={headerHtml} />}
+      {contactLinks.length > 0 && (
+        <nav class="header-contact" aria-label={content.contactLinks}>
+          {contactLinks.map((link) => (
+            <a href={link.href} rel={link.external ? "noopener" : undefined}>{link.label}</a>
+          ))}
+        </nav>
+      )}
+    </div>
+  )}
   <div class="header-bar frame">
     {links.length > 0 && (
       <button type="button" popovertarget="site-menu" class="icon-btn header-menu-button" aria-label={content.navMenu}>
@@ -153,6 +177,28 @@ const headerStyle = [`--logo-w: ${logoWidth}px`, sectionColorStyle(headerColors)
     border-bottom: 1px solid var(--clr-border);
   }
   .header-html :global(a) { color: var(--clr-primary); text-decoration: underline; }
+  .header-contact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem 0.75rem;
+    margin-block-start: 0.25rem;
+  }
+  .header-contact a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding-inline: 0.5rem;
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-round);
+    background: var(--clr-surface);
+    color: var(--clr-ink);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .header-contact a:hover { background: var(--clr-plate); color: var(--clr-primary); }
   .header-bar {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;

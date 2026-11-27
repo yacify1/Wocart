@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text and icons can carry different colors without fighting over one field.
   A third Auto color sets the band's background, with a picker and hex input
   like the other two.
+- The Appearance tab offers a Social & contact block for a phone number, email
+  address and Instagram, Facebook or TikTok profile. Each saved detail becomes
+  a safe, clickable action in the reference theme's header strip; an empty
+  field hides its button.
 
 ### Changed
 

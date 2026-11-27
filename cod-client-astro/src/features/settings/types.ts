@@ -4,6 +4,7 @@ import type { LocaleRow, StoreLanguage } from "../../../../cod-shared/stores/set
 import type {
   AppearanceChromeColors,
   AppearanceColorScheme,
+  AppearanceContact,
   AppearanceDetailColors,
   AppearanceHomeSectionKey,
   AppearanceLogoAlignment,
@@ -94,6 +95,7 @@ export interface StoreAppearance {
     }
   >;
   chromeColors: AppearanceChromeColors;
+  contact: AppearanceContact;
   detailColors: AppearanceDetailColors;
   /** Saved text edits, `{ ar: { heroTitle: "…" } }`. */
   texts: Partial<Record<StoreLocale, Record<string, string>>>;

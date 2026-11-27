@@ -113,7 +113,47 @@ describe("the header and the footer's menu", () => {
     });
     expect(html).not.toContain("header-logo");
     expect(html).not.toContain("magnifying-glass");
-    expect(html).toMatch(/<div class="header-html"[^>]*><strong>Sale<\/strong><\/div>/);
+    expect(html).toContain('class="header-html"');
+    expect(html).toContain("<strong>Sale</strong>");
+  });
+
+  it("shows saved contact and social details as safe clickable actions", async () => {
+    const html = await (await AstroContainer.create()).renderToString(Header, {
+      props: { ...HEADER_PROPS, storeMenu: menu },
+      locals: locals({
+        config: {
+          ...TEST_CONFIG,
+          themeSettings: {
+            headerHtml: "<strong>Sale</strong>",
+            contactPhone: "tel:+21355123456",
+            contactEmail: "mailto:hello@example.dz",
+            instagramUrl: "https://instagram.com/shop",
+            facebookUrl: "https://facebook.com/shop",
+            tiktokUrl: "https://tiktok.com/@shop",
+          },
+        },
+      }),
+    });
+    expect(html).toContain('aria-label="Liens de contact"');
+    expect(html).toMatch(/href="tel:\+21355123456"[^>]*>Appelez-nous<\/a>/);
+    expect(html).toMatch(/href="mailto:hello@example\.dz"[^>]*>Écrivez-nous<\/a>/);
+    expect(html).toMatch(/href="https:\/\/instagram\.com\/shop"[^>]*rel="noopener"[^>]*>Instagram<\/a>/);
+    expect(html).toMatch(/href="https:\/\/facebook\.com\/shop"[^>]*rel="noopener"[^>]*>Facebook<\/a>/);
+    expect(html).toMatch(/href="https:\/\/tiktok\.com\/@shop"[^>]*rel="noopener"[^>]*>TikTok<\/a>/);
+    expect(html).toContain("<strong>Sale</strong>");
+
+    const unsafe = await (await AstroContainer.create()).renderToString(Header, {
+      props: { ...HEADER_PROPS, storeMenu: null },
+      locals: locals({
+        config: {
+          ...TEST_CONFIG,
+          themeSettings: { contactPhone: "javascript:alert(1)", instagramUrl: "//evil.test" },
+        },
+      }),
+    });
+    expect(unsafe).not.toContain("Liens de contact");
+    expect(unsafe).not.toContain("javascript:");
+    expect(unsafe).not.toContain("evil.test");
   });
 
   it("applies the store's header and header-strip colors without changing the scheme markers", async () => {

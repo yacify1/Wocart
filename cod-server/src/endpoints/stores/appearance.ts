@@ -27,8 +27,10 @@ import { NotFoundError, ValidationError } from "@/lib/errors/classes";
 import { ERROR_CODES } from "../../../../cod-shared/errors/codes";
 import {
   APPEARANCE_CHROME_KEYS,
+  APPEARANCE_CONTACT_KEYS,
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEADER_HTML_MAX,
+  APPEARANCE_LINK_MAX,
   APPEARANCE_HEX,
   APPEARANCE_HOME_SECTIONS,
   APPEARANCE_LOGO_ALIGNMENTS,
@@ -38,6 +40,7 @@ import {
   APPEARANCE_SCHEME_ID,
   APPEARANCE_SECTION_COLOR_FIELDS,
   APPEARANCE_TEXT_KEYS,
+  appearanceContactHref,
   appearanceLocaleProblem,
   appearanceSettingsToRemove,
   appearanceSettingsToTheme,
@@ -46,6 +49,7 @@ import {
   mergeAppearance,
   sanitizeHeaderHtml,
   type AppearanceColorScheme,
+  type AppearanceContact,
   type AppearanceDetailColors,
   type AppearanceHomeSectionKey,
   type AppearanceLogoAlignment,
@@ -118,6 +122,26 @@ const detailColorsSchema = z.object({
   newPrice: detailColor,
 });
 
+const contactSchema = z
+  .object(
+    Object.fromEntries(
+      APPEARANCE_CONTACT_KEYS.map((key) => [key, z.string().max(APPEARANCE_LINK_MAX).optional()]),
+    ),
+  )
+  .strict()
+  .superRefine((value, ctx) => {
+    for (const key of APPEARANCE_CONTACT_KEYS) {
+      const raw = value[key];
+      if (raw !== undefined && raw.trim() && !appearanceContactHref(key, raw)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: "Enter a phone number, email address or social link this theme can open",
+        });
+      }
+    }
+  });
+
 const sectionColorStateSchema = z.object(
   Object.fromEntries(
     APPEARANCE_SECTION_COLOR_FIELDS.map((field) => [field, z.string().nullable().optional()]),
@@ -152,6 +176,7 @@ const appearanceSchema = z.object({
   logoAlignment: logoAlignmentSchema,
   sections: z.record(z.enum(SECTION_KEYS), sectionStateSchema),
   chromeColors: chromeColorsSchema,
+  contact: contactSchema,
   detailColors: detailColorsSchema,
   texts: z.record(z.string(), z.record(z.string(), z.string())),
 });
@@ -167,6 +192,7 @@ export const saveAppearanceSchema = z.object({
   logoAlignment: logoAlignmentSchema.optional(),
   sections: z.partialRecord(z.enum(SECTION_KEYS), sectionEditSchema).optional(),
   chromeColors: chromeColorsSchema.optional(),
+  contact: contactSchema.optional(),
   detailColors: detailColorsSchema.optional(),
   texts: z
     .object({
@@ -238,6 +264,7 @@ async function appearanceOf(db: ReturnType<typeof getDb>, store: StoreRow, env: 
     logoAlignment: saved?.logoAlignment ?? "right",
     sections,
     chromeColors,
+    contact: (saved?.contact ?? {}) as AppearanceContact,
     detailColors: (saved?.detailColors ?? {}) as AppearanceDetailColors,
     texts,
   };
@@ -273,6 +300,7 @@ export async function saveAppearance(c: Context<AppContext>) {
     logoAlignment: body.logoAlignment ?? saved?.logoAlignment ?? "right",
     sections: body.sections as AppearanceSectionEdits | undefined,
     chromeColors: body.chromeColors,
+    contact: body.contact as AppearanceContact | undefined,
     detailColors: body.detailColors as AppearanceDetailColors | undefined,
   });
   if (merged.error || !merged.settings) {
@@ -320,7 +348,7 @@ const getAppearanceRoute = defineRoute({
   tags: ["Store Settings"],
   summary: "Get the storefront's appearance",
   description:
-    "Returns the store's color schemes, the scheme its page wears, its storefront switches and a safe header HTML strip, and the theme text it edited, per language.",
+    "Returns the store's color schemes, the scheme its page wears, its storefront switches, safe contact links and a safe header HTML strip, and the theme text it edited, per language.",
   operationId: "getStoreAppearance",
   responses: {
     200: {
@@ -338,7 +366,7 @@ const saveAppearanceRoute = defineRoute({
   tags: ["Store Settings"],
   summary: "Save the storefront's appearance",
   description:
-    "Saves only the fields supplied: the colors of the store's existing schemes and the scheme the page wears, its storefront switches and a safe header HTML strip, or one language's theme text edits. Fields left out keep their saved values; an empty text deletes the edit.",
+    "Saves only the fields supplied: the colors of the store's existing schemes and the scheme the page wears, its storefront switches, safe contact links and a safe header HTML strip, or one language's theme text edits. Fields left out keep their saved values; an empty text deletes the edit.",
   operationId: "saveStoreAppearance",
   body: saveAppearanceSchema,
   responses: {
