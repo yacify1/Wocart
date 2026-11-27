@@ -143,7 +143,7 @@ const appearanceSchema = z.object({
   texts: z.record(z.string(), z.record(z.string(), z.string())),
 });
 
-const saveAppearanceSchema = z.object({
+export const saveAppearanceSchema = z.object({
   colorSchemes: z.array(colorSchemeSchema).min(1).max(APPEARANCE_MAX_SCHEMES).optional(),
   pageScheme: z.string().optional(),
   hideLogo: z.boolean().optional(),
@@ -152,7 +152,7 @@ const saveAppearanceSchema = z.object({
   searchEnabled: z.boolean().optional(),
   headerHtml: z.string().max(APPEARANCE_HEADER_HTML_MAX).optional(),
   logoAlignment: logoAlignmentSchema.optional(),
-  sections: z.record(z.enum(SECTION_KEYS), sectionEditSchema).optional(),
+  sections: z.partialRecord(z.enum(SECTION_KEYS), sectionEditSchema).optional(),
   detailColors: detailColorsSchema.optional(),
   texts: z
     .object({

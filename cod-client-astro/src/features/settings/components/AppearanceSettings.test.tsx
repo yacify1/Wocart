@@ -580,6 +580,22 @@ describe("AppearanceSettings", () => {
     expect(heroCard().querySelector('img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
   });
 
+  it("persists a hero upload by itself with only the hero section", async () => {
+    await render();
+    await uploadHero();
+
+    expect(seam.calls).toHaveLength(1);
+    expect(Object.keys(seam.calls[0]!)).toEqual(["sections"]);
+    expect(Object.keys(seam.calls[0]!.sections)).toEqual(["hero"]);
+    expect(seam.calls[0]!.sections.hero.image).toEqual({
+      key: "products/hero.webp",
+      width: 1200,
+      height: 600,
+    });
+    expect(notify.success).toHaveBeenCalledWith("feedback.uploaded");
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+  });
+
   it("keeps a hero upload made while a sections save is in flight", async () => {
     await render();
     let resolveSave!: (value: Record<string, any>) => void;
