@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Layers3, Loader2, Palette, SlidersHorizontal, Type } from "lucide-react";
 import { Alert, Badge, Field, Input, Select, SwitchField, Textarea } from "@/components/ui";
 import { useLocale, useT } from "@/i18n/react";
+import { notify } from "@/lib/notify";
 import { getAppearance, saveAppearance, type SaveAppearanceInput } from "@/features/settings/api";
 import { SettingsSection, FieldRow } from "@/features/settings/components/SettingsSection";
 import { ImageUploader } from "@/features/uploads/components/ImageUploader";
@@ -87,6 +88,7 @@ export function autoDetailSwatch(key: AppearanceDetailColorKey, scheme: Appearan
 
 const IMAGE_SECTION_KEYS = new Set<AppearanceHomeSectionKey>(["hero", "image-banner"]);
 const MARQUEE_SECOND_AUTO = "#f2c14e";
+const MARQUEE_BACKGROUND_AUTO = "#f2c14e";
 
 const LOOKS = [
   { id: "scheme-1", labelKey: "store.appearance_look_original" },
@@ -126,7 +128,7 @@ type SectionState = StoreAppearance["sections"][AppearanceHomeSectionKey];
 
 function emptySection(key: AppearanceHomeSectionKey): SectionState {
   return key === "marquee"
-    ? { hidden: false, image: null, text: "", color: null, accentColor: null }
+    ? { hidden: false, image: null, text: "", color: null, accentColor: null, backgroundColor: null }
     : { hidden: false, image: null };
 }
 
@@ -159,6 +161,7 @@ function sectionEdits(sections: StoreAppearance["sections"]): AppearanceSectionE
               text: sections.marquee?.text ?? null,
               color: sections.marquee?.color ?? null,
               accentColor: sections.marquee?.accentColor ?? null,
+              backgroundColor: sections.marquee?.backgroundColor ?? null,
             }
           : {}),
       },
@@ -188,6 +191,7 @@ function sectionsFrom(saved: StoreAppearance): StoreAppearance["sections"] {
             text: typeof savedSection?.text === "string" ? savedSection.text : "",
             color: safeHex(savedSection?.color),
             accentColor: safeHex(savedSection?.accentColor),
+            backgroundColor: safeHex(savedSection?.backgroundColor),
           }
         : {}),
     };
@@ -514,6 +518,21 @@ export function AppearanceSettings() {
   function updateSection(key: AppearanceHomeSectionKey, change: Partial<SectionState>) {
     sectionVersion.current += 1;
     setSections((all) => ({ ...all, [key]: { ...all[key], ...change } }));
+  }
+
+  async function persistHeroImage(image: MediaImage) {
+    const edit = sectionImageOf(image);
+    if (!edit) return;
+    try {
+      const saved = await saveAppearance({ sections: { hero: { image: edit } } });
+      const savedImage = savedSectionImage(saved.sections?.hero?.image);
+      if (savedImage) {
+        setSections((all) => ({ ...all, hero: { ...all.hero, image: savedImage } }));
+      }
+      notify.success(common("feedback.uploaded"));
+    } catch {
+      notify.error(t("store.save_error"));
+    }
   }
 
   async function saveColors() {
@@ -855,6 +874,15 @@ export function AppearanceSettings() {
                         onChange={(accentColor) => updateSection(key, { accentColor })}
                       />
                     </div>
+                    <ColorField
+                      label={t("store.appearance_section_marquee_background_color")}
+                      value={section?.backgroundColor ?? MARQUEE_BACKGROUND_AUTO}
+                      swatch={MARQUEE_BACKGROUND_AUTO}
+                      isAuto={!section?.backgroundColor}
+                      autoLabel={t("store.appearance_color_auto")}
+                      onClear={() => updateSection(key, { backgroundColor: null })}
+                      onChange={(backgroundColor) => updateSection(key, { backgroundColor })}
+                    />
                   </div>
                 )}
                 {IMAGE_SECTION_KEYS.has(key) && (
@@ -864,9 +892,11 @@ export function AppearanceSettings() {
                     </p>
                     <ImageUploader
                       value={section?.image ?? null}
-                      onChange={(image: MediaImage | null) =>
-                        updateSection(key, { image: isMediaImage(image) ? image : null })
-                      }
+                      onChange={(image: MediaImage | null) => {
+                        const next = isMediaImage(image) ? image : null;
+                        updateSection(key, { image: next });
+                        if (key === "hero" && next) void persistHeroImage(next);
+                      }}
                       alt={label}
                       shape="landscape"
                       buttonLabel={t("store.appearance_section_upload")}

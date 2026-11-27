@@ -100,6 +100,7 @@ export const THEME_SETTINGS = [
       { key: "homeMarqueeText", kind: "textarea", label: HOME_SETTING.marquee.text, default: "" },
       { key: "homeMarqueeColor", kind: "color", label: HOME_SETTING.marquee.color },
       { key: "homeMarqueeAccentColor", kind: "color", label: HOME_SETTING.marquee.accentColor },
+      { key: "homeMarqueeBackgroundColor", kind: "color", label: HOME_SETTING.marquee.backgroundColor },
       { key: "homeCategoryCardsHidden", kind: "boolean", label: HOME_SETTING["category-cards"].hidden, default: false },
       { key: "homeCategoryCardsImage", kind: "image", label: HOME_SETTING["category-cards"].image },
       { key: "homeProductTabsHidden", kind: "boolean", label: HOME_SETTING["product-tabs"].hidden, default: false },

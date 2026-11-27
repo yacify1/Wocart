@@ -297,6 +297,10 @@ const sparkleColorOf = (label: LocalizedText): LocalizedText => {
   const { ar, fr, en } = partsOf(label);
   return { ar: `لون أيقونات اللمعان في ${ar}`, fr: `Couleur des étincelles de ${fr}`, en: `${en} sparkle icon color` };
 };
+const marqueeBackgroundOf = (label: LocalizedText): LocalizedText => {
+  const { ar, fr, en } = partsOf(label);
+  return { ar: `لون خلفية ${ar}`, fr: `Couleur de fond de ${fr}`, en: `${en} background color` };
+};
 
 export const HOME_SETTING = {
   hero: { hidden: hideOf(SECTION.hero), image: imageOf(SECTION.hero) },
@@ -306,6 +310,7 @@ export const HOME_SETTING = {
     text: marqueeTextOf(SECTION.marquee),
     color: marqueeColorOf(SECTION.marquee),
     accentColor: sparkleColorOf(SECTION.marquee),
+    backgroundColor: marqueeBackgroundOf(SECTION.marquee),
   },
   "category-cards": { hidden: hideOf(SECTION.categoryCards), image: imageOf(SECTION.categoryCards) },
   "product-tabs": { hidden: hideOf(SECTION.productTabs), image: imageOf(SECTION.productTabs) },

@@ -150,17 +150,19 @@ describe("per-section visibility and photos", () => {
 describe("scrolling text controls", () => {
   const marquee = [{ id: "m", type: "marquee" }] as ComponentInstance[];
 
-  it("uses the saved text, color and second color instead of the theme's messages", async () => {
+  it("uses the saved text, color, second color and band background instead of the theme's messages", async () => {
     const html = await renderSections(marquee, storefront, {
       themeSettings: {
         homeMarqueeText: "<strong>Free delivery</strong>",
         homeMarqueeColor: "#123456",
         homeMarqueeAccentColor: "#fedcba",
+        homeMarqueeBackgroundColor: "#ffcc00",
       },
     });
     expect(html).toContain("<strong>Free delivery</strong>");
     expect(html).toContain("color: #123456");
     expect(html).toContain("--marquee-sparkle: #fedcba");
+    expect(html).toContain("background-color: #ffcc00");
     const source = readFileSync(resolve(process.cwd(), "src/theme/components/home/Marquee.astro"), "utf8");
     expect(source).toContain("var(--marquee-sparkle, var(--clr-highlight))");
     expect(html).toContain("Free delivery");

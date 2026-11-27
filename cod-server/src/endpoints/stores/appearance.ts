@@ -99,6 +99,7 @@ const sectionEditSchema = z.object({
   text: z.string().max(APPEARANCE_MARQUEE_TEXT_MAX).nullable().optional(),
   color: z.string().regex(APPEARANCE_HEX).nullable().optional(),
   accentColor: z.string().regex(APPEARANCE_HEX).nullable().optional(),
+  backgroundColor: z.string().regex(APPEARANCE_HEX).nullable().optional(),
 });
 
 const detailColor = z.string().regex(APPEARANCE_HEX).nullable().optional();
@@ -122,6 +123,7 @@ const sectionStateSchema = z.object({
   text: z.string().nullable().optional(),
   color: z.string().nullable().optional(),
   accentColor: z.string().nullable().optional(),
+  backgroundColor: z.string().nullable().optional(),
 });
 
 const appearanceSchema = z.object({
@@ -195,6 +197,7 @@ async function appearanceOf(db: ReturnType<typeof getDb>, store: StoreRow, env: 
                 text: edit?.text ?? "",
                 color: edit?.color ?? null,
                 accentColor: edit?.accentColor ?? null,
+                backgroundColor: edit?.backgroundColor ?? null,
               }
             : {}),
         },

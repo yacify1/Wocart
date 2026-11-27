@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   formatting and links are kept; scripts and unknown tags are dropped.
   A second Auto color controls the sparkle icons beside each message, so the
   text and icons can carry different colors without fighting over one field.
+  A third Auto color sets the band's background, with a picker and hex input
+  like the other two.
 
 ### Changed
 
@@ -81,6 +83,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A Hero picture uploaded in Appearance is saved as soon as the upload completes
+  and no longer raises a second success toast, so the upload settles inside
+  Settings instead of leaving the page in its error state.
 - An upload answer that is not a usable image is rejected before it reaches the
   dashboard's state, so a broken Hero upload reports a failure instead of
   showing a success toast and then the Settings page's load-failure fallback.

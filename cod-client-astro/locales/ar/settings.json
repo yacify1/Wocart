@@ -116,6 +116,7 @@
     "appearance_section_marquee_text_hint": "اتركه فارغاً لاستخدام رسائل القالب. يتم الاحتفاظ بالتنسيق البسيط والروابط الآمنة.",
     "appearance_section_marquee_color": "لون النص",
     "appearance_section_marquee_accent_color": "اللون الثاني",
+    "appearance_section_marquee_background_color": "لون الخلفية",
     "appearance_section_category-cards": "بطاقات التصنيفات",
     "appearance_section_product-tabs": "تبويبات المنتجات",
     "appearance_section_image-banner": "بانر العرض",

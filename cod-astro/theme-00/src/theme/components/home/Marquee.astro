@@ -24,6 +24,7 @@ const style = [
   `--marquee-time: ${seconds}s`,
   ...(override.color ? [`color: ${override.color}`] : []),
   ...(override.accentColor ? [`--marquee-sparkle: ${override.accentColor}`] : []),
+  ...(override.backgroundColor ? [`background-color: ${override.backgroundColor}`] : []),
 ].join("; ");
 const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.length))) }, () => messages).flat();
 ---

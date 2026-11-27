@@ -328,6 +328,7 @@ describe("logo alignment and home sections", () => {
           text: '<script>alert(1)</script><img src="x" onerror="alert(2)"><strong>Free delivery</strong>',
           color: "#123456",
           accentColor: "#fedcba",
+          backgroundColor: "#f2c14e",
         },
       },
     };
@@ -336,6 +337,7 @@ describe("logo alignment and home sections", () => {
       homeMarqueeText: "<strong>Free delivery</strong>",
       homeMarqueeColor: "#123456",
       homeMarqueeAccentColor: "#fedcba",
+      homeMarqueeBackgroundColor: "#f2c14e",
     });
     expect(appearanceSettingsToTheme(settings).homeMarqueeText).not.toContain("onerror");
     expect(appearanceSettingsProblem({ ...valid(), sections: { hero: { text: "not allowed" } } })).toMatch(
@@ -346,6 +348,9 @@ describe("logo alignment and home sections", () => {
     );
     expect(appearanceSettingsProblem({ ...valid(), sections: { marquee: { accentColor: "gold" } } })).toMatch(
       /sparkles need a hex color/,
+    );
+    expect(appearanceSettingsProblem({ ...valid(), sections: { marquee: { backgroundColor: "gold" } } })).toMatch(
+      /band needs a hex color/,
     );
     expect(
       appearanceSettingsProblem({ ...valid(), sections: { marquee: { text: "x".repeat(501) } } }),
@@ -358,31 +363,38 @@ describe("logo alignment and home sections", () => {
       homeMarqueeText: "<strong>Free delivery</strong>",
       homeMarqueeColor: "#123456",
       homeMarqueeAccentColor: "#fedcba",
+      homeMarqueeBackgroundColor: "#ffcc00",
     };
     expect(appearanceThemeSettingsOf(stored)?.sections?.marquee).toEqual({
       text: "<strong>Free delivery</strong>",
       color: "#123456",
       accentColor: "#fedcba",
+      backgroundColor: "#ffcc00",
     });
 
     const current: AppearanceSettings = {
       ...valid(),
       sections: {
         hero: { hidden: true },
-        marquee: { text: "Free delivery", color: "#abcdef", accentColor: "#fedcba" },
+        marquee: { text: "Free delivery", color: "#abcdef", accentColor: "#fedcba", backgroundColor: "#ffcc00" },
       },
     };
     expect(
       mergeAppearance(current, { ...valid(), sections: { marquee: {} } }).settings?.sections?.marquee,
-    ).toEqual({ text: "Free delivery", color: "#abcdef", accentColor: "#fedcba" });
+    ).toEqual({ text: "Free delivery", color: "#abcdef", accentColor: "#fedcba", backgroundColor: "#ffcc00" });
     const cleared = mergeAppearance(current, {
       ...valid(),
-      sections: { marquee: { text: null, color: null, accentColor: null } },
+      sections: { marquee: { text: null, color: null, accentColor: null, backgroundColor: null } },
     });
     expect(cleared.settings?.sections?.marquee).toBeUndefined();
     expect(cleared.settings?.sections?.hero).toEqual({ hidden: true });
     expect(appearanceSettingsToRemove(cleared.settings!)).toEqual(
-      expect.arrayContaining(["homeMarqueeText", "homeMarqueeColor", "homeMarqueeAccentColor"]),
+      expect.arrayContaining([
+        "homeMarqueeText",
+        "homeMarqueeColor",
+        "homeMarqueeAccentColor",
+        "homeMarqueeBackgroundColor",
+      ]),
     );
   });
 });

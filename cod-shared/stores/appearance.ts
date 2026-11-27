@@ -90,6 +90,8 @@ export interface AppearanceSectionEdit {
   color?: string | null;
   /** A custom color for the sparkle icons beside each message. Marquee only. */
   accentColor?: string | null;
+  /** A custom scrolling-text band background; null follows the theme's band. Marquee only. */
+  backgroundColor?: string | null;
 }
 
 export type AppearanceSectionEdits = Partial<Record<AppearanceHomeSectionKey, AppearanceSectionEdit>>;
@@ -185,6 +187,7 @@ export const APPEARANCE_MARQUEE_TEXT_MAX = 500;
 const MARQUEE_TEXT_FLAT_KEY = "homeMarqueeText";
 const MARQUEE_COLOR_FLAT_KEY = "homeMarqueeColor";
 const MARQUEE_ACCENT_COLOR_FLAT_KEY = "homeMarqueeAccentColor";
+const MARQUEE_BACKGROUND_COLOR_FLAT_KEY = "homeMarqueeBackgroundColor";
 
 const HEADER_HTML_TAGS = new Set(["a", "b", "strong", "i", "em", "u", "small", "span", "br"]);
 const HEADER_HTML_ATTR = /([a-z][a-z0-9-]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
@@ -338,7 +341,7 @@ export function appearanceSectionsProblem(value: unknown): string | null {
     if (!SECTION_KEYS.includes(key)) return `"${key}" is not a home section`;
     if (!isRecord(edit)) return `section "${key}" must be an object`;
     const unknown = Object.keys(edit).find(
-      (name) => !["hidden", "image", "text", "color", "accentColor"].includes(name),
+      (name) => !["hidden", "image", "text", "color", "accentColor", "backgroundColor"].includes(name),
     );
     if (unknown !== undefined) return `section "${key}" has an unknown key "${unknown}"`;
     if (edit.hidden !== undefined && edit.hidden !== null && typeof edit.hidden !== "boolean") {
@@ -349,7 +352,10 @@ export function appearanceSectionsProblem(value: unknown): string | null {
       if (problem) return `section "${key}" image ${problem}`;
     }
     if (
-      (edit.text !== undefined || edit.color !== undefined || edit.accentColor !== undefined) &&
+      (edit.text !== undefined ||
+        edit.color !== undefined ||
+        edit.accentColor !== undefined ||
+        edit.backgroundColor !== undefined) &&
       key !== "marquee"
     ) {
       return `section "${key}" cannot hold scrolling text`;
@@ -368,6 +374,11 @@ export function appearanceSectionsProblem(value: unknown): string | null {
     if (edit.accentColor !== undefined && edit.accentColor !== null) {
       if (typeof edit.accentColor !== "string" || !APPEARANCE_HEX.test(edit.accentColor)) {
         return `scrolling-text sparkles need a hex color`;
+      }
+    }
+    if (edit.backgroundColor !== undefined && edit.backgroundColor !== null) {
+      if (typeof edit.backgroundColor !== "string" || !APPEARANCE_HEX.test(edit.backgroundColor)) {
+        return `scrolling-text band needs a hex color`;
       }
     }
   }
@@ -399,6 +410,7 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
   if (marqueeText) flat[MARQUEE_TEXT_FLAT_KEY] = marqueeText;
   if (marquee?.color) flat[MARQUEE_COLOR_FLAT_KEY] = marquee.color;
   if (marquee?.accentColor) flat[MARQUEE_ACCENT_COLOR_FLAT_KEY] = marquee.accentColor;
+  if (marquee?.backgroundColor) flat[MARQUEE_BACKGROUND_COLOR_FLAT_KEY] = marquee.backgroundColor;
   for (const [key, flatKey] of Object.entries(DETAIL_COLOR_FLAT_KEYS) as [AppearanceDetailColorKey, string][]) {
     const color = settings.detailColors?.[key];
     if (color) flat[flatKey] = color;
@@ -413,6 +425,7 @@ export function appearanceSettingsToRemove(settings: AppearanceSettings): string
   if (!marquee?.text || !sanitizeMarqueeHtml(marquee.text).trim()) removed.push(MARQUEE_TEXT_FLAT_KEY);
   if (!marquee?.color) removed.push(MARQUEE_COLOR_FLAT_KEY);
   if (!marquee?.accentColor) removed.push(MARQUEE_ACCENT_COLOR_FLAT_KEY);
+  if (!marquee?.backgroundColor) removed.push(MARQUEE_BACKGROUND_COLOR_FLAT_KEY);
   for (const section of APPEARANCE_HOME_SECTIONS) {
     const edit = settings.sections?.[section.key];
     if (edit?.hidden !== true) removed.push(section.hiddenKey);
@@ -440,6 +453,10 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
       if (typeof color === "string" && APPEARANCE_HEX.test(color)) edit.color = color;
       const accentColor = stored[MARQUEE_ACCENT_COLOR_FLAT_KEY];
       if (typeof accentColor === "string" && APPEARANCE_HEX.test(accentColor)) edit.accentColor = accentColor;
+      const backgroundColor = stored[MARQUEE_BACKGROUND_COLOR_FLAT_KEY];
+      if (typeof backgroundColor === "string" && APPEARANCE_HEX.test(backgroundColor)) {
+        edit.backgroundColor = backgroundColor;
+      }
     }
     if (Object.keys(edit).length > 0) sections[section.key] = edit;
   }
@@ -573,6 +590,10 @@ export function mergeAppearance(
     if (Object.prototype.hasOwnProperty.call(edit, "accentColor")) {
       if (edit.accentColor) merged.accentColor = edit.accentColor;
       else delete merged.accentColor;
+    }
+    if (Object.prototype.hasOwnProperty.call(edit, "backgroundColor")) {
+      if (edit.backgroundColor) merged.backgroundColor = edit.backgroundColor;
+      else delete merged.backgroundColor;
     }
     if (merged.hidden === undefined || merged.hidden === null) delete merged.hidden;
     if (merged.image === undefined) delete merged.image;

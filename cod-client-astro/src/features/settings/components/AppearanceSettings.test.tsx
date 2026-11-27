@@ -35,7 +35,12 @@ vi.mock("@/features/settings/api", () => ({
                 }
               : null,
             ...(key === "marquee"
-              ? { text: edit.text ?? "", color: edit.color ?? null, accentColor: edit.accentColor ?? null }
+              ? {
+                  text: edit.text ?? "",
+                  color: edit.color ?? null,
+                  accentColor: edit.accentColor ?? null,
+                  backgroundColor: edit.backgroundColor ?? null,
+                }
               : {}),
           },
         ]),
@@ -388,7 +393,7 @@ describe("AppearanceSettings", () => {
     expect(seam.calls[1]!.sections.marquee.color).toBeNull();
   });
 
-  it("saves the scrolling text's second color next to the text color", async () => {
+  it("saves the second color and the band background next to the text color", async () => {
     await render();
     const card = section("store.appearance_sections_title");
     const accent = card.querySelector<HTMLInputElement>(
@@ -396,11 +401,17 @@ describe("AppearanceSettings", () => {
     )!;
     await setValue(accent, "#fedcba", "input");
     await act(async () => accent.dispatchEvent(new FocusEvent("blur", { bubbles: true })));
+    const background = card.querySelector<HTMLInputElement>(
+      'input[aria-label="store.appearance_section_marquee_background_color hex"]',
+    )!;
+    await setValue(background, "#ffcc00", "input");
+    await act(async () => background.dispatchEvent(new FocusEvent("blur", { bubbles: true })));
 
     await click(saveButton(card));
     expect(seam.calls[0]!.sections.marquee.text).toBe("");
     expect(seam.calls[0]!.sections.marquee.color).toBeNull();
     expect(seam.calls[0]!.sections.marquee.accentColor).toBe("#fedcba");
+    expect(seam.calls[0]!.sections.marquee.backgroundColor).toBe("#ffcc00");
   });
 
   it("gives the second color its own Auto without clearing the text color", async () => {

@@ -88,6 +88,7 @@ export interface StoreAppearance {
       text?: string | null;
       color?: string | null;
       accentColor?: string | null;
+      backgroundColor?: string | null;
     }
   >;
   detailColors: AppearanceDetailColors;
