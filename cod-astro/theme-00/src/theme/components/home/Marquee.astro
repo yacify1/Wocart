@@ -74,7 +74,19 @@ const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.
   .marquee-item :global(svg) { width: 0.875rem; height: 0.875rem; flex: none; color: var(--marquee-sparkle, var(--clr-highlight)); }
   .marquee-static { display: none; }
   @media (max-width: 639px) {
-    .marquee { padding-inline: 1rem; }
+    .marquee { padding-inline: 0.5rem; }
+    .marquee-item {
+      gap: 1.25rem;
+      padding-inline-end: 1.25rem;
+      padding-block: 0.625rem;
+      font-size: var(--text-sm);
+    }
+  }
+  @media (min-width: 1024px) { .marquee-item { padding-block: 1.125rem; font-size: var(--text-lg); } }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+  :global([dir="rtl"]) .marquee-track { animation-name: marquee-rtl; }
+  @keyframes marquee-rtl { to { transform: translateX(50%); } }
+  @media (prefers-reduced-motion: reduce) {
     .marquee-track { display: none; }
     .marquee-static {
       display: flex;
@@ -92,9 +104,4 @@ const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(1, messages.
       text-align: center;
     }
   }
-  @media (min-width: 1024px) { .marquee-item { padding-block: 1.125rem; font-size: var(--text-lg); } }
-  @keyframes marquee { to { transform: translateX(-50%); } }
-  :global([dir="rtl"]) .marquee-track { animation-name: marquee-rtl; }
-  @keyframes marquee-rtl { to { transform: translateX(50%); } }
-  @media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; } }
 </style>

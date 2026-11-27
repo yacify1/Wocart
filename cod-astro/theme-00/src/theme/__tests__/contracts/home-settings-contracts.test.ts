@@ -168,6 +168,14 @@ describe("scrolling text controls", () => {
     expect(html).toContain("Free delivery");
   });
 
+  it("keeps the horizontal track scrolling on phones instead of stacking static lines", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/theme/components/home/Marquee.astro"), "utf8");
+    const mobile = /@media \(max-width: 639px\) \{([\s\S]*?)\n  \}/.exec(source)?.[1] ?? "";
+    expect(mobile).toContain(".marquee-item {");
+    expect(mobile).not.toContain(".marquee-track { display: none; }");
+    expect(source).toContain("@media (prefers-reduced-motion: reduce) {");
+  });
+
   it("keeps the shipped messages and theme color when nothing is saved", async () => {
     const html = await renderSections(marquee, storefront);
     expect(html).toContain(en.trust1Title);
@@ -306,6 +314,9 @@ describe("category photos", () => {
     );
     expect(source).toContain("overflow-wrap: break-word;");
     expect(source).toContain(".category-all {");
+    expect(source).toContain('class:list={["category-tile", "plate", "category-all"]}');
+    expect(source).not.toMatch(/\.category-all \{[^}]*border: 1px solid var\(--clr-ink\)/);
+    expect(source).toContain("max-width: min(3.5rem, 78%);");
   });
 
   it("lets the store recolor a section on the element that wears its scheme", async () => {

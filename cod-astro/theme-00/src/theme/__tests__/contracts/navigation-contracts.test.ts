@@ -135,11 +135,15 @@ describe("the header and the footer's menu", () => {
       }),
     });
     expect(html).toContain('aria-label="Liens de contact"');
-    expect(html).toMatch(/href="tel:\+21355123456"[^>]*>Appelez-nous<\/a>/);
-    expect(html).toMatch(/href="mailto:hello@example\.dz"[^>]*>Écrivez-nous<\/a>/);
-    expect(html).toMatch(/href="https:\/\/instagram\.com\/shop"[^>]*rel="noopener"[^>]*>Instagram<\/a>/);
-    expect(html).toMatch(/href="https:\/\/facebook\.com\/shop"[^>]*rel="noopener"[^>]*>Facebook<\/a>/);
-    expect(html).toMatch(/href="https:\/\/tiktok\.com\/@shop"[^>]*rel="noopener"[^>]*>TikTok<\/a>/);
+    expect(html).toMatch(/class="header-contact[^"]*flex-row[^"]*items-center[^"]*gap-1\.5"/);
+    expect(html).toMatch(/href="tel:\+21355123456"[^>]*>[\s\S]*?contact-label"[^>]*>Appelez-nous<\/span>\s*<\/a>/);
+    expect(html).toMatch(/href="mailto:hello@example\.dz"[^>]*>[\s\S]*?contact-label"[^>]*>Écrivez-nous<\/span>\s*<\/a>/);
+    expect(html).toMatch(/href="https:\/\/instagram\.com\/shop"[^>]*rel="noopener"[^>]*>[\s\S]*?contact-label"[^>]*>Instagram<\/span>\s*<\/a>/);
+    expect(html).toMatch(/href="https:\/\/facebook\.com\/shop"[^>]*rel="noopener"[^>]*>[\s\S]*?contact-label"[^>]*>Facebook<\/span>\s*<\/a>/);
+    expect(html).toMatch(/href="https:\/\/tiktok\.com\/@shop"[^>]*rel="noopener"[^>]*>[\s\S]*?contact-label"[^>]*>TikTok<\/span>\s*<\/a>/);
+    expect(html).toContain('aria-label="Appelez-nous"');
+    expect(html).toContain('data-icon="heroicons:phone"');
+    expect(html).toContain('data-icon="heroicons:envelope"');
     expect(html).toContain("<strong>Sale</strong>");
 
     const unsafe = await (await AstroContainer.create()).renderToString(Header, {
