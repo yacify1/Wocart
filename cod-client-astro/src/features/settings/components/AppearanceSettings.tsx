@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, Layers3, Loader2, Palette, SlidersHorizontal, Type } from "lucide-react";
 import { Alert, Badge, Field, Input, Select, SwitchField, Textarea } from "@/components/ui";
 import { useLocale, useT } from "@/i18n/react";
@@ -277,6 +277,7 @@ function sameColors(
 
 function ColorField({
   label,
+  ariaLabel = label,
   value,
   onChange,
   isAuto = false,
@@ -286,6 +287,7 @@ function ColorField({
   compact = false,
 }: {
   label: string;
+  ariaLabel?: string;
   value: string;
   onChange: (value: string) => void;
   isAuto?: boolean;
@@ -295,6 +297,8 @@ function ColorField({
   compact?: boolean;
 }) {
   const [text, setText] = useState(value);
+  const labelId = useId();
+  const hexId = useId();
 
   useEffect(() => setText(value), [value]);
 
@@ -316,15 +320,19 @@ function ColorField({
 
   if (compact) {
     return (
-      <div className="min-w-0 rounded-lg border border-border px-2 py-2">
-        <span className="mb-1 block truncate text-[10px] font-medium text-muted-foreground" title={label}>
+      <div role="group" aria-labelledby={labelId} className="min-w-0 rounded-lg border border-border bg-card p-2.5">
+        <label
+          id={labelId}
+          htmlFor={hexId}
+          className="block break-words text-[11px] font-medium leading-snug text-muted-foreground"
+        >
           {label}
-        </span>
-        <div className="flex items-center gap-1.5">
+        </label>
+        <div className="mt-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5">
           {isAuto && swatch ? (
             <span
               aria-hidden="true"
-              className="size-6 shrink-0 rounded-md border border-input p-0.5"
+              className="size-7 shrink-0 rounded-md border border-input p-0.5"
               style={{ background: swatch }}
             >
               <span className="block size-full rounded-sm border border-border/60" />
@@ -334,26 +342,27 @@ function ColorField({
               type="color"
               value={value}
               onChange={(event) => onChange(event.target.value.toLowerCase())}
-              aria-label={label}
-              className="size-6 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
+              aria-label={ariaLabel}
+              className="size-7 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
             />
           )}
           <Input
+            id={hexId}
             value={text}
             onChange={(event) => commit(event.target.value)}
             onBlur={settle}
-            aria-label={`${label} hex`}
+            aria-label={`${ariaLabel} hex`}
             spellCheck={false}
             maxLength={7}
-            className="h-7 w-full min-w-0 px-1.5 font-mono text-[10px] uppercase"
+            className="h-8 w-full min-w-0 px-1.5 font-mono text-[11px] uppercase"
           />
           {onClear && (
             <button
               type="button"
               onClick={onClear}
               disabled={isAuto}
-              aria-label={`${label} ${autoLabel ?? "auto"}`}
-              className={`inline-flex h-7 shrink-0 items-center rounded-md border px-1.5 text-[10px] font-semibold transition-colors ${
+              aria-label={`${ariaLabel} ${autoLabel ?? "auto"}`}
+              className={`inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-md border px-2 text-[11px] font-semibold transition-colors ${
                 isAuto
                   ? "border-primary/40 bg-primary/[0.06] text-foreground"
                   : "border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
@@ -368,7 +377,11 @@ function ColorField({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border px-3 py-2.5">
+    <div
+      role="group"
+      aria-labelledby={labelId}
+      className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border px-3 py-2.5"
+    >
       {isAuto && swatch ? (
         <span
           aria-hidden="true"
@@ -382,16 +395,19 @@ function ColorField({
           type="color"
           value={value}
           onChange={(event) => onChange(event.target.value.toLowerCase())}
-          aria-label={label}
+          aria-label={ariaLabel}
           className="size-8 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
         />
       )}
-      <span className="min-w-0 flex-1 basis-20 break-words text-sm leading-5 text-foreground">{label}</span>
+      <label id={labelId} htmlFor={hexId} className="min-w-0 flex-1 basis-20 break-words text-sm leading-5 text-foreground">
+        {label}
+      </label>
       <Input
+        id={hexId}
         value={text}
         onChange={(event) => commit(event.target.value)}
         onBlur={settle}
-        aria-label={`${label} hex`}
+        aria-label={`${ariaLabel} hex`}
         spellCheck={false}
         maxLength={7}
         className="h-8 w-24 shrink-0 px-2 font-mono text-xs uppercase"
@@ -401,8 +417,8 @@ function ColorField({
           type="button"
           onClick={onClear}
           disabled={isAuto}
-          aria-label={`${label} ${autoLabel ?? "auto"}`}
-          className={`inline-flex h-8 shrink-0 items-center rounded-md border px-2.5 text-[0.65rem] font-semibold transition-colors ${
+          aria-label={`${ariaLabel} ${autoLabel ?? "auto"}`}
+          className={`inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-md border px-2.5 text-[0.65rem] font-semibold transition-colors ${
             isAuto
               ? "border-primary/40 bg-primary/[0.06] text-foreground"
               : "border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
@@ -421,15 +437,19 @@ function SectionColorFields({
   current,
   colors,
   onChange,
+  wide = false,
+  children,
 }: {
   label: string;
   sectionKey?: AppearanceHomeSectionKey;
   current: AppearanceColorScheme | undefined;
   colors: AppearanceSectionColors;
   onChange: (field: AppearanceSectionColorField, value: string | null) => void;
+  wide?: boolean;
+  children?: ReactNode;
 }) {
   const t = useT("settings");
-  const labelFor = (field: AppearanceSectionColorField) => {
+  const ariaLabelFor = (field: AppearanceSectionColorField) => {
     if (sectionKey === "marquee" && field === "color") return t("store.appearance_section_marquee_color");
     if (sectionKey === "marquee" && field === "backgroundColor") {
       return t("store.appearance_section_marquee_background_color");
@@ -440,12 +460,13 @@ function SectionColorFields({
     effectiveSchemeColor(current, field === "color" ? "text" : field === "backgroundColor" ? "background" : "button");
 
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+    <div className={`grid gap-2 sm:grid-cols-2 ${wide ? "lg:grid-cols-3" : ""}`}>
       {APPEARANCE_SECTION_COLOR_FIELDS.map((field) => (
         <ColorField
           key={field}
           compact
-          label={labelFor(field)}
+          label={t(SECTION_COLOR_LABEL_KEYS[field])}
+          ariaLabel={ariaLabelFor(field)}
           value={colors[field] ?? fallback(field)}
           swatch={fallback(field)}
           isAuto={!colors[field]}
@@ -454,6 +475,7 @@ function SectionColorFields({
           onChange={(value) => onChange(field, value)}
         />
       ))}
+      {children}
     </div>
   );
 }
@@ -490,8 +512,17 @@ function AppearancePreview({
   const categoryBg = category.backgroundColor ?? colors.background;
 
   return (
-    <div className="space-y-2 rounded-xl bg-card p-3 shadow-card">
-      <span className="block text-sm font-semibold text-foreground">{t("store.appearance_preview")}</span>
+    <section
+      aria-label={t("store.appearance_preview")}
+      className="space-y-2 rounded-xl border border-border bg-card p-3 shadow-card"
+    >
+      <div className="space-y-0.5">
+        <h2 className="text-sm font-semibold text-foreground">{t("store.appearance_preview")}</h2>
+        <p className="flex items-center gap-1.5 text-[11px] leading-snug text-muted-foreground">
+          <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-primary" />
+          {t("store.appearance_preview_hint")}
+        </p>
+      </div>
       <div className="overflow-hidden rounded-lg border" style={{ borderColor: colors.border }}>
         <div
           className="border-b border-border/60 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide"
@@ -570,7 +601,7 @@ function AppearancePreview({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -1006,6 +1037,7 @@ export function AppearanceSettings() {
                   {t(CHROME_LABEL_KEYS[key])}
                 </p>
                 <SectionColorFields
+                  wide
                   label={t(CHROME_LABEL_KEYS[key])}
                   current={current}
                   colors={chromeColors[key] ?? {}}
@@ -1052,16 +1084,6 @@ export function AppearanceSettings() {
                         {t("store.appearance_section_marquee_text_hint")}
                       </p>
                     </Field>
-                    <ColorField
-                      compact
-                      label={t("store.appearance_section_marquee_accent_color")}
-                      value={section?.accentColor ?? MARQUEE_SECOND_AUTO}
-                      swatch={MARQUEE_SECOND_AUTO}
-                      isAuto={!section?.accentColor}
-                      autoLabel={t("store.appearance_color_auto")}
-                      onClear={() => updateSection(key, { accentColor: null })}
-                      onChange={(accentColor) => updateSection(key, { accentColor })}
-                    />
                   </div>
                 )}
                 <div className="mt-2 border-t border-border pt-2">
@@ -1071,7 +1093,21 @@ export function AppearanceSettings() {
                     current={current}
                     colors={section ?? {}}
                     onChange={(field, value) => updateSection(key, { [field]: value })}
-                  />
+                  >
+                    {key === "marquee" && (
+                      <ColorField
+                        compact
+                        label={t("store.appearance_section_marquee_accent_color")}
+                        ariaLabel={t("store.appearance_section_marquee_accent_color")}
+                        value={section?.accentColor ?? MARQUEE_SECOND_AUTO}
+                        swatch={MARQUEE_SECOND_AUTO}
+                        isAuto={!section?.accentColor}
+                        autoLabel={t("store.appearance_color_auto")}
+                        onClear={() => updateSection(key, { accentColor: null })}
+                        onChange={(accentColor) => updateSection(key, { accentColor })}
+                      />
+                    )}
+                  </SectionColorFields>
                 </div>
                 {IMAGE_SECTION_KEYS.has(key) && (
                   <div className="mt-3 border-t border-border pt-3">
@@ -1155,8 +1191,8 @@ export function AppearanceSettings() {
           {t("store.appearance_reload_hint")}
         </p>
       </div>
-      <aside className="order-first xl:order-none">
-        <div className="xl:sticky xl:top-4">
+      <aside className="order-first min-w-0 self-start xl:order-none">
+        <div className="xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pe-1">
           <AppearancePreview
             scheme={current}
             detailColors={detailColors}
