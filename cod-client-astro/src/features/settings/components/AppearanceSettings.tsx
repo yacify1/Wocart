@@ -283,6 +283,7 @@ function ColorField({
   autoLabel,
   onClear,
   swatch,
+  compact = false,
 }: {
   label: string;
   value: string;
@@ -291,6 +292,7 @@ function ColorField({
   autoLabel?: string;
   onClear?: () => void;
   swatch?: string;
+  compact?: boolean;
 }) {
   const [text, setText] = useState(value);
 
@@ -310,6 +312,59 @@ function ColorField({
     } else {
       setText(value);
     }
+  }
+
+  if (compact) {
+    return (
+      <div className="min-w-0 rounded-lg border border-border px-2 py-2">
+        <span className="mb-1 block truncate text-[10px] font-medium text-muted-foreground" title={label}>
+          {label}
+        </span>
+        <div className="flex items-center gap-1.5">
+          {isAuto && swatch ? (
+            <span
+              aria-hidden="true"
+              className="size-6 shrink-0 rounded-md border border-input p-0.5"
+              style={{ background: swatch }}
+            >
+              <span className="block size-full rounded-sm border border-border/60" />
+            </span>
+          ) : (
+            <input
+              type="color"
+              value={value}
+              onChange={(event) => onChange(event.target.value.toLowerCase())}
+              aria-label={label}
+              className="size-6 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
+            />
+          )}
+          <Input
+            value={text}
+            onChange={(event) => commit(event.target.value)}
+            onBlur={settle}
+            aria-label={`${label} hex`}
+            spellCheck={false}
+            maxLength={7}
+            className="h-7 w-full min-w-0 px-1.5 font-mono text-[10px] uppercase"
+          />
+          {onClear && (
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={isAuto}
+              aria-label={`${label} ${autoLabel ?? "auto"}`}
+              className={`inline-flex h-7 shrink-0 items-center rounded-md border px-1.5 text-[10px] font-semibold transition-colors ${
+                isAuto
+                  ? "border-primary/40 bg-primary/[0.06] text-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              }`}
+            >
+              {autoLabel ?? "Auto"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -385,10 +440,11 @@ function SectionColorFields({
     effectiveSchemeColor(current, field === "color" ? "text" : field === "backgroundColor" ? "background" : "button");
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
       {APPEARANCE_SECTION_COLOR_FIELDS.map((field) => (
         <ColorField
           key={field}
+          compact
           label={labelFor(field)}
           value={colors[field] ?? fallback(field)}
           swatch={fallback(field)}
@@ -434,24 +490,27 @@ function AppearancePreview({
   const categoryBg = category.backgroundColor ?? colors.background;
 
   return (
-    <div className="space-y-1.5">
-      <span className="text-sm font-medium text-foreground">{t("store.appearance_preview")}</span>
-      <div className="overflow-hidden rounded-xl border" style={{ borderColor: colors.border }}>
+    <div className="space-y-2 rounded-xl bg-card p-3 shadow-card">
+      <span className="block text-sm font-semibold text-foreground">{t("store.appearance_preview")}</span>
+      <div className="overflow-hidden rounded-lg border" style={{ borderColor: colors.border }}>
         <div
-          className="px-3 py-1.5 text-center text-[10px] font-semibold"
+          className="border-b border-border/60 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide"
           style={{ background: announcement.backgroundColor ?? colors.heading, color: announcement.color ?? colors.background }}
         >
           {t("store.appearance_preview_top_strip")}
         </div>
         <div
-          className="px-3 py-1.5 text-center text-[10px]"
+          className="border-b border-border/60 px-3 py-2 text-center text-[10px] uppercase tracking-wide"
           style={{ background: headerHtml.backgroundColor ?? colors.background, color: headerHtml.color ?? colors.text }}
         >
           {t("store.appearance_preview_header_html")}
         </div>
-        <div className="p-4" style={{ background: colors.background, color: colors.text }}>
-          <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="font-semibold" style={{ color: hero.color ?? colors.heading }}>
+        <div className="space-y-3 p-3" style={{ background: colors.background, color: colors.text }}>
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wide"
+              style={{ color: hero.color ?? colors.heading }}
+            >
               {t("store.appearance_preview_hero")}
             </span>
             <span
@@ -462,51 +521,53 @@ function AppearancePreview({
             </span>
           </div>
           <div
-            className="mt-2 rounded-md px-3 py-2 text-[10px] font-semibold"
+            className="rounded-md px-3 py-2 text-center text-[10px] font-semibold"
             style={{ background: categoryBg, color: category.color ?? colors.heading }}
           >
             {t("store.appearance_preview_category")}
           </div>
-        <p className="mt-3 text-base font-bold leading-snug" style={{ color: colors.heading }}>
-          {title}
-        </p>
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: colors.text }}>
-          {subtitle}
-        </p>
-        <p className="mt-3 flex items-center gap-2 text-sm">
-          <span className="text-xs line-through" style={{ color: oldPrice }}>
-            {t("store.appearance_preview_was")}
-          </span>
-          <span className="text-base font-bold" style={{ color: newPrice }}>
-            {t("store.appearance_preview_price")}
-          </span>
-        </p>
-        <span
-          className="mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
-          style={{ background: offer, color: "#0f1626" }}
-        >
-          {t("store.appearance_preview_offer")}
-        </span>
-        <div
-          className="mt-3 rounded-lg border px-3 py-2 text-xs"
-          style={{ borderColor: colors.border, color: colors.text }}
-        >
-          {t("store.appearance_preview_field")}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <span
-            className="rounded-lg px-3 py-2 text-center text-xs font-bold"
-            style={{ background: colors.button, color: colors.buttonText }}
+          <div className="space-y-1">
+            <p className="text-base font-bold leading-snug" style={{ color: colors.heading }}>
+              {title}
+            </p>
+            <p className="text-xs leading-relaxed" style={{ color: colors.text }}>
+              {subtitle}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs line-through" style={{ color: oldPrice }}>
+              {t("store.appearance_preview_was")}
+            </span>
+            <span className="text-base font-bold" style={{ color: newPrice }}>
+              {t("store.appearance_preview_price")}
+            </span>
+            <span
+              className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
+              style={{ background: offer, color: readableOn(offer) }}
+            >
+              {t("store.appearance_preview_offer")}
+            </span>
+          </div>
+          <div
+            className="rounded-lg border px-3 py-2 text-xs"
+            style={{ borderColor: colors.border, color: colors.text }}
           >
-            {cta}
-          </span>
-          <span
-            className="rounded-lg border px-3 py-2 text-center text-xs font-bold"
-            style={{ color: secondary, borderColor: secondary }}
-          >
-            {t("store.appearance_preview_secondary_cta")}
-          </span>
-        </div>
+            {t("store.appearance_preview_field")}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span
+              className="rounded-lg px-3 py-2 text-center text-xs font-bold"
+              style={{ background: colors.button, color: colors.buttonText }}
+            >
+              {cta}
+            </span>
+            <span
+              className="rounded-lg border px-3 py-2 text-center text-xs font-bold"
+              style={{ color: secondary, borderColor: secondary }}
+            >
+              {t("store.appearance_preview_secondary_cta")}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -707,8 +768,9 @@ export function AppearanceSettings() {
   const previewCta = localeDrafts.heroCtaPrimary?.trim() || t("store.appearance_preview_cta");
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl bg-card px-5 py-4 shadow-card">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="space-y-6">
+        <div className="rounded-xl bg-card px-5 py-4 shadow-card">
         <h2 className="text-sm font-semibold text-foreground">{t("store.appearance_title")}</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">{t("store.appearance_subtitle")}</p>
       </div>
@@ -858,15 +920,6 @@ export function AppearanceSettings() {
                 })}
               </div>
             </div>
-            <AppearancePreview
-              scheme={current}
-              detailColors={detailColors}
-              sections={sections}
-              chromeColors={chromeColors}
-              title={previewTitle}
-              subtitle={previewSubtitle}
-              cta={previewCta}
-            />
           </div>
         </div>
       </SettingsSection>
@@ -970,7 +1023,7 @@ export function AppearanceSettings() {
         subtitle={t("store.appearance_sections_subtitle")}
         onSave={saveSections}
       >
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 xl:grid-cols-2">
           {APPEARANCE_HOME_SECTIONS.map(({ key }) => {
             const section = sections[key];
             const label = t(`store.appearance_section_${key}`);
@@ -983,7 +1036,7 @@ export function AppearanceSettings() {
                   onChange={(hidden) => updateSection(key, { hidden })}
                 />
                 {key === "marquee" && (
-                  <div className="mt-3 space-y-2 border-t border-border pt-3">
+                  <div className="mt-2 space-y-2 border-t border-border pt-2">
                     <Field
                       label={t("store.appearance_section_marquee_text")}
                       hint={`${(section?.text ?? "").length}/${APPEARANCE_MARQUEE_TEXT_MAX}`}
@@ -1000,6 +1053,7 @@ export function AppearanceSettings() {
                       </p>
                     </Field>
                     <ColorField
+                      compact
                       label={t("store.appearance_section_marquee_accent_color")}
                       value={section?.accentColor ?? MARQUEE_SECOND_AUTO}
                       swatch={MARQUEE_SECOND_AUTO}
@@ -1010,7 +1064,7 @@ export function AppearanceSettings() {
                     />
                   </div>
                 )}
-                <div className="mt-3 space-y-2 border-t border-border pt-3">
+                <div className="mt-2 border-t border-border pt-2">
                   <SectionColorFields
                     label={label}
                     sectionKey={key}
@@ -1095,20 +1149,25 @@ export function AppearanceSettings() {
           })}
         </div>
 
-        <AppearancePreview
-          scheme={current}
-          detailColors={detailColors}
-          sections={sections}
-          chromeColors={chromeColors}
-          title={previewTitle}
-          subtitle={previewSubtitle}
-          cta={previewCta}
-        />
       </SettingsSection>
 
-      <p className="text-xs text-muted-foreground">
-        {t("store.appearance_reload_hint")}
-      </p>
+        <p className="text-xs text-muted-foreground">
+          {t("store.appearance_reload_hint")}
+        </p>
+      </div>
+      <aside className="order-first xl:order-none">
+        <div className="xl:sticky xl:top-4">
+          <AppearancePreview
+            scheme={current}
+            detailColors={detailColors}
+            sections={sections}
+            chromeColors={chromeColors}
+            title={previewTitle}
+            subtitle={previewSubtitle}
+            cta={previewCta}
+          />
+        </div>
+      </aside>
     </div>
   );
 }
