@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, Layers3, Loader2, Palette, SlidersHorizontal, Type } from "lucide-react";
-import { Alert, Badge, Field, Input, Select, SwitchField, Textarea } from "@/components/ui";
+import { Alert, Badge, Field, Input, Select, Switch, SwitchField, Textarea } from "@/components/ui";
 import { useLocale, useT } from "@/i18n/react";
 import { notify } from "@/lib/notify";
 import { getAppearance, saveAppearance, type SaveAppearanceInput } from "@/features/settings/api";
@@ -320,7 +320,11 @@ function ColorField({
 
   if (compact) {
     return (
-      <div role="group" aria-labelledby={labelId} className="min-w-0 rounded-lg border border-border bg-card p-2.5">
+      <div
+        role="group"
+        aria-labelledby={labelId}
+        className="min-w-0 overflow-hidden rounded-lg border border-border bg-card p-2.5"
+      >
         <label
           id={labelId}
           htmlFor={hexId}
@@ -328,7 +332,7 @@ function ColorField({
         >
           {label}
         </label>
-        <div className="mt-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5">
+        <div className="mt-2 grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5">
           {isAuto && swatch ? (
             <span
               aria-hidden="true"
@@ -599,6 +603,45 @@ function AppearancePreview({
               {t("store.appearance_preview_secondary_cta")}
             </span>
           </div>
+        </div>
+      </div>
+      <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-2">
+        <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {t("store.appearance_preview_sections")}
+        </span>
+        <div className="grid grid-cols-2 gap-1">
+          {[
+            ...APPEARANCE_CHROME_KEYS.map((key) => ({
+              key,
+              label: t(CHROME_LABEL_KEYS[key]),
+              colors: chromeColors[key] ?? {},
+            })),
+            ...APPEARANCE_HOME_SECTIONS.map(({ key }) => ({
+              key,
+              label: t(`store.appearance_section_${key}`),
+              colors: sections[key] ?? {},
+            })),
+          ].map(({ key, label, colors: sectionColors }) => {
+            const background = sectionColors.backgroundColor ?? colors.background;
+            const text = sectionColors.color ?? readableOn(background);
+            const button = sectionColors.buttonColor;
+            return (
+              <div
+                key={key}
+                className="flex min-w-0 items-center gap-1 rounded-md border border-border px-1.5 py-1"
+                style={{ background, color: text }}
+              >
+                <span className="min-w-0 break-words text-[9px] font-medium leading-tight">{label}</span>
+                {button && (
+                  <span
+                    aria-hidden="true"
+                    className="ms-auto size-2 shrink-0 rounded-full border border-black/10"
+                    style={{ background: button }}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -1060,13 +1103,20 @@ export function AppearanceSettings() {
             const section = sections[key];
             const label = t(`store.appearance_section_${key}`);
             return (
-              <div key={key} className="rounded-lg border border-border p-3">
-                <SwitchField
-                  label={label}
-                  help={t("store.appearance_section_hide")}
-                  checked={section?.hidden ?? false}
-                  onChange={(hidden) => updateSection(key, { hidden })}
-                />
+              <div key={key} className="min-w-0 rounded-lg border border-border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-0.5">
+                    <p className="break-words text-sm font-medium leading-snug text-foreground">{label}</p>
+                    <p className="text-xs leading-snug text-muted-foreground">
+                      {t("store.appearance_section_hide")}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={section?.hidden ?? false}
+                    onChange={(hidden) => updateSection(key, { hidden })}
+                    aria-label={`${label} — ${t("store.appearance_section_hide")}`}
+                  />
+                </div>
                 {key === "marquee" && (
                   <div className="mt-2 space-y-2 border-t border-border pt-2">
                     <Field
