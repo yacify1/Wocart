@@ -466,7 +466,7 @@ function SectionColorFields({
     effectiveSchemeColor(current, field === "color" ? "text" : field === "backgroundColor" ? "background" : "button");
 
   return (
-    <div className={rows ? "space-y-2" : `grid gap-2 sm:grid-cols-2 ${wide ? "lg:grid-cols-3" : ""}`}>
+    <div className={rows ? "grid gap-2 sm:grid-cols-2" : `grid gap-2 sm:grid-cols-2 ${wide ? "lg:grid-cols-3" : ""}`}>
       {APPEARANCE_SECTION_COLOR_FIELDS.map((field) => (
         <ColorField
           key={field}
@@ -543,6 +543,7 @@ function AppearancePreview({
           {t("store.appearance_preview_header_html")}
         </div>
         <div className="space-y-3 p-3" style={{ background: colors.background, color: colors.text }}>
+          <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <span
               className="text-[10px] font-semibold uppercase tracking-wide"
@@ -563,6 +564,8 @@ function AppearancePreview({
           >
             {t("store.appearance_preview_category")}
           </div>
+          </div>
+          <div className="space-y-3 border-t border-border/60 pt-3">
           <div className="space-y-1">
             <p className="text-base font-bold leading-snug" style={{ color: colors.heading }}>
               {title}
@@ -585,6 +588,8 @@ function AppearancePreview({
               {t("store.appearance_preview_offer")}
             </span>
           </div>
+          </div>
+          <div className="space-y-2 border-t border-border/60 pt-3">
           <div
             className="rounded-lg border px-3 py-2 text-xs"
             style={{ borderColor: colors.border, color: colors.text }}
@@ -604,6 +609,7 @@ function AppearancePreview({
             >
               {t("store.appearance_preview_secondary_cta")}
             </span>
+          </div>
           </div>
         </div>
       </div>
