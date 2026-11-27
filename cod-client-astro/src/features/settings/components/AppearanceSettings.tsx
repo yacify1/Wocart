@@ -26,6 +26,7 @@ import {
   colorSchemesProblem,
   effectiveSchemeColor,
   effectiveSchemeColors,
+  sanitizeHeaderHtml,
   type AppearanceChromeKey,
   type AppearanceColorRole,
   type AppearanceColorScheme,
@@ -92,6 +93,44 @@ const CONTACT_FIELDS: { key: AppearanceContactKey; labelKey: string; placeholder
   { key: "facebookUrl", labelKey: "store.appearance_contact_facebook", placeholderKey: "store.appearance_contact_facebook_placeholder" },
   { key: "tiktokUrl", labelKey: "store.appearance_contact_tiktok", placeholderKey: "store.appearance_contact_tiktok_placeholder" },
 ];
+
+type PreviewContactIconName = "phone" | "email" | "whatsapp" | "instagram" | "facebook" | "tiktok";
+
+const PREVIEW_CONTACT_ICONS: Record<PreviewContactIconName, { path: string; filled?: boolean }> = {
+  phone: { path: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z" },
+  email: { path: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2 8 6 8-6" },
+  whatsapp: { path: "M12.04 2C6.56 2 2.13 6.43 2.13 11.91c0 1.75.46 3.46 1.33 4.96L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.48 0 9.91-4.43 9.91-9.91S17.52 2 12.04 2Zm0 18.13a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.36c0-4.53 3.69-8.21 8.22-8.21 2.2 0 4.27.86 5.82 2.42a8.17 8.17 0 0 1 2.4 5.8c0 4.52-3.69 8.21-8.21 8.21Z" },
+  instagram: { path: "M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm5 5.4a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2ZM17.5 6.5h.01" },
+  facebook: { path: "M14 22v-9h3l.5-3.5H14V7.3c0-1 .3-1.8 1.8-1.8h1.9V2.4c-.3 0-1.5-.1-2.8-.1-2.8 0-4.7 1.7-4.7 4.8v2.4H7V13h3.2v9H14Z", filled: true },
+  tiktok: { path: "M14 3v9.6a4.4 4.4 0 1 1-3.5-4.3V11a1.8 1.8 0 1 0 1.4 1.7V3h2.1a5 5 0 0 0 5 4.5V10A7 7 0 0 1 14 8.2" },
+};
+
+const CONTACT_ICON_OF: Record<AppearanceContactKey, PreviewContactIconName> = {
+  contactPhone: "phone",
+  contactEmail: "email",
+  instagramUrl: "instagram",
+  facebookUrl: "facebook",
+  tiktokUrl: "tiktok",
+};
+
+function PreviewContactIcon({ name }: { name: PreviewContactIconName }) {
+  const icon = PREVIEW_CONTACT_ICONS[name];
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="12"
+      height="12"
+      aria-hidden="true"
+      fill={icon.filled ? "currentColor" : "none"}
+      stroke={icon.filled ? "none" : "currentColor"}
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={icon.path} />
+    </svg>
+  );
+}
 
 function safeContact(value: unknown): AppearanceContact {
   const contact: AppearanceContact = {};
@@ -537,6 +576,7 @@ function AppearancePreview({
   sections,
   chromeColors,
   controls,
+  contact,
   direction,
   title,
   subtitle,
@@ -547,6 +587,7 @@ function AppearancePreview({
   sections: StoreAppearance["sections"];
   chromeColors: AppearanceChromeColors;
   controls: AppearanceControls;
+  contact: AppearanceContact;
   direction: "rtl" | "ltr";
   title: string;
   subtitle: string;
@@ -577,11 +618,24 @@ function AppearancePreview({
     controls.contactLayout === "column"
       ? { flexDirection: "column", alignItems: contactPosition }
       : { flexDirection: "row", justifyContent: contactPosition };
+  const previewContacts = [
+    ...(contact.contactPhone
+      ? [
+          { key: "phone", label: t("store.appearance_contact_phone"), icon: "phone" as const },
+          { key: "whatsapp", label: t("store.appearance_contact_whatsapp"), icon: "whatsapp" as const },
+        ]
+      : []),
+    ...CONTACT_FIELDS.filter((field) => field.key !== "contactPhone" && contact[field.key]).map((field) => ({
+      key: field.key,
+      label: t(field.labelKey),
+      icon: CONTACT_ICON_OF[field.key],
+    })),
+  ];
 
   return (
     <section
       aria-label={t("store.appearance_preview")}
-      className="space-y-2 rounded-xl border border-border bg-card p-3 shadow-card"
+      className="space-y-2 rounded-xl border border-border bg-card p-3 shadow-card xl:flex xl:max-h-[calc(100vh-3rem)] xl:flex-col"
     >
       <div className="space-y-0.5">
         <h2 className="text-sm font-semibold text-foreground">{t("store.appearance_preview")}</h2>
@@ -590,7 +644,10 @@ function AppearancePreview({
           {t("store.appearance_preview_hint")}
         </p>
       </div>
-      <div className="overflow-hidden rounded-lg border" style={{ borderColor: colors.border }}>
+      <div
+        className="overflow-hidden rounded-lg border xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain"
+        style={{ borderColor: colors.border }}
+      >
         <div
           className="border-b border-border/60 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide"
           style={{ background: announcement.backgroundColor ?? colors.heading, color: announcement.color ?? colors.background }}
@@ -602,7 +659,11 @@ function AppearancePreview({
             className="border-b border-border/60 px-3 py-2 text-center text-[10px] uppercase tracking-wide"
             style={{ background: headerHtmlColors.backgroundColor ?? colors.background, color: headerHtmlColors.color ?? colors.text }}
           >
-            {t("store.appearance_preview_header_html")}
+            {controls.headerHtml.trim() ? (
+              <span dangerouslySetInnerHTML={{ __html: sanitizeHeaderHtml(controls.headerHtml) }} />
+            ) : (
+              t("store.appearance_preview_header_html")
+            )}
           </div>
         )}
         <div
@@ -674,23 +735,21 @@ function AppearancePreview({
               </div>
             );
           })}
-          {controls.showContactLinks && (
+          {controls.showContactLinks && previewContacts.length > 0 && (
             <div className="space-y-1 border-t border-border/60 pt-2">
               <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.heading }}>
                 {t("store.appearance_group_contact")}
               </p>
               <div dir={direction} style={contactStyle} className="flex gap-1.5">
-                {[
-                  t("store.appearance_contact_phone"),
-                  t("store.appearance_contact_email"),
-                  t("store.appearance_contact_instagram"),
-                ].map((label) => (
+                {previewContacts.map((contact) => (
                   <span
-                    key={label}
-                    className="shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold"
+                    key={contact.key}
+                    aria-label={contact.label}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold"
                     style={{ borderColor: colors.border, color: colors.text }}
                   >
-                    {label}
+                    <PreviewContactIcon name={contact.icon} />
+                    {contact.label}
                   </span>
                 ))}
               </div>
@@ -1441,6 +1500,7 @@ export function AppearanceSettings() {
           sections={sections}
           chromeColors={chromeColors}
           controls={controls}
+          contact={contact}
           direction={STORE_LOCALE_INFO[textLocale].direction}
           title={previewTitle}
           subtitle={previewSubtitle}

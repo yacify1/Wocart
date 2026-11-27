@@ -146,6 +146,11 @@ describe("the header and the footer's menu", () => {
     expect(html).toContain('aria-label="Appelez-nous"');
     expect(html).toContain('data-icon="heroicons:phone"');
     expect(html).toContain('data-icon="heroicons:envelope"');
+    expect(html).toContain('data-contact-icon="phone"');
+    expect(html).toContain('data-contact-icon="email"');
+    expect(html).toContain('data-contact-icon="instagram"');
+    expect(html).toContain('data-contact-icon="facebook"');
+    expect(html).toContain('data-contact-icon="tiktok"');
     expect(html).toContain("<strong>Sale</strong>");
 
     const unsafe = await (await AstroContainer.create()).renderToString(Header, {
@@ -200,6 +205,7 @@ describe("the header and the footer's menu", () => {
     expect(source).toContain('[dir="rtl"] .header-contact[data-contact-align="left"]');
     expect(source).toContain('[dir="rtl"] .header-contact[data-contact-align="right"]');
     expect(source).toContain('.header-contact[data-contact-layout="column"]');
+    expect(source).toContain('position: fixed');
     expect(source).toContain('[dir="rtl"] .header-contact[data-contact-layout="column"][data-contact-align="left"]');
     expect(source).toContain('[dir="rtl"] .header-contact[data-contact-layout="column"][data-contact-align="right"]');
   });

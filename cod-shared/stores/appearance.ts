@@ -289,16 +289,36 @@ const escapeHtml = (value: string): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+const HEADER_HTML_ENTITY = /&(amp|lt|gt|quot|apos|#39|#x27|#60|#x3c|#62|#x3e|#38|#x26);/gi;
+const HEADER_HTML_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  "#39": "'",
+  "#x27": "'",
+  "#60": "<",
+  "#x3c": "<",
+  "#62": ">",
+  "#x3e": ">",
+  "#38": "&",
+  "#x26": "&",
+};
+const decodeHeaderEntities = (value: string): string =>
+  value.replace(HEADER_HTML_ENTITY, (entity, name: string) => HEADER_HTML_ENTITIES[name.toLowerCase()] ?? entity);
+
 const MARQUEE_DISCARDED_HTML =
   /<(script|style|iframe|object|embed|svg|template)\b[^>]*>[\s\S]*?<\/\1\s*>|<!--[\s\S]*?-->/gi;
 const MARQUEE_ANY_TAG = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
 
 export function sanitizeHeaderHtml(value: string): string {
+  const source = decodeHeaderEntities(value);
   let output = "";
   let last = 0;
-  for (const match of value.matchAll(HEADER_HTML_TAG)) {
+  for (const match of source.matchAll(HEADER_HTML_TAG)) {
     const start = match.index ?? 0;
-    output += escapeHtml(value.slice(last, start));
+    output += escapeHtml(source.slice(last, start));
     last = start + match[0].length;
     const tag = match[1]!.toLowerCase();
     if (!HEADER_HTML_TAGS.has(tag)) {
@@ -325,7 +345,7 @@ export function sanitizeHeaderHtml(value: string): string {
     const selfClosing = /\/\s*$/.test(match[2] ?? "") ? " /" : "";
     output += `<${tag}${attributes.length > 0 ? ` ${attributes.join(" ")}` : ""}${selfClosing}>`;
   }
-  return output + escapeHtml(value.slice(last));
+  return output + escapeHtml(source.slice(last));
 }
 
 const sanitizeMarqueeHtml = (value: string): string =>
@@ -678,7 +698,7 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
     searchEnabled: stored.searchEnabled ?? true,
     showHeaderHtml: stored.showHeaderHtml ?? true,
     showContactLinks: stored.showContactLinks ?? true,
-    headerHtml: typeof stored.headerHtml === "string" ? stored.headerHtml : "",
+    headerHtml: sanitizeHeaderHtml(typeof stored.headerHtml === "string" ? stored.headerHtml : ""),
     logoAlignment: APPEARANCE_LOGO_ALIGNMENTS.includes(stored.logoAlignment as AppearanceLogoAlignment)
       ? (stored.logoAlignment as AppearanceLogoAlignment)
       : "right",

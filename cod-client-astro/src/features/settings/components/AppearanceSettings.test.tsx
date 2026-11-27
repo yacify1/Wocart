@@ -426,6 +426,35 @@ describe("AppearanceSettings", () => {
     expect(previewContact.getAttribute("style")).toContain("align-items: flex-end");
   });
 
+  it("renders decoded header HTML and every configured contact icon in the preview", async () => {
+    seam.appearance = {
+      ...appearance(),
+      headerHtml: "&lt;strong&gt;Sale &amp; ship&lt;/strong&gt;",
+      contact: {
+        contactPhone: "tel:+21355123456",
+        contactEmail: "hello@example.dz",
+        instagramUrl: "https://instagram.com/shop",
+        facebookUrl: "https://facebook.com/shop",
+        tiktokUrl: "https://tiktok.com/@shop",
+      },
+    };
+    await render();
+    const preview = host.querySelector("aside")!;
+    expect(preview.querySelector("strong")?.textContent).toBe("Sale & ship");
+    expect(preview.textContent).not.toContain("&lt;strong&gt;");
+    for (const label of [
+      "store.appearance_contact_phone",
+      "store.appearance_contact_whatsapp",
+      "store.appearance_contact_email",
+      "store.appearance_contact_instagram",
+      "store.appearance_contact_facebook",
+      "store.appearance_contact_tiktok",
+    ]) {
+      expect(preview.textContent).toContain(label);
+    }
+    expect(preview.querySelectorAll("svg").length).toBeGreaterThanOrEqual(6);
+  });
+
   it("saves text edits without touching colors or storefront controls", async () => {
     await render();
     const label = [...host.querySelectorAll("label")].find((node) =>

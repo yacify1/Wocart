@@ -280,7 +280,7 @@ async function appearanceOf(db: ReturnType<typeof getDb>, store: StoreRow, env: 
     searchEnabled: saved?.searchEnabled ?? true,
     showHeaderHtml: saved?.showHeaderHtml ?? true,
     showContactLinks: saved?.showContactLinks ?? true,
-    headerHtml: saved?.headerHtml ?? "",
+    headerHtml: sanitizeHeaderHtml(saved?.headerHtml ?? ""),
     logoAlignment: saved?.logoAlignment ?? "right",
     contactAlignment: saved?.contactAlignment ?? "center",
     contactLayout: saved?.contactLayout ?? "row",

@@ -678,4 +678,14 @@ describe("sanitizeHeaderHtml", () => {
   it("escapes plain text", () => {
     expect(sanitizeHeaderHtml("A & B < C")).toBe("A &amp; B &lt; C");
   });
+
+  it("decodes pasted entities once so markup is not double-escaped", () => {
+    expect(sanitizeHeaderHtml('&lt;strong class=&quot;promo&quot;&gt;A &amp; B&lt;/strong&gt;')).toBe(
+      '<strong class="promo">A &amp; B</strong>',
+    );
+    expect(sanitizeHeaderHtml("&amp;lt;script&amp;gt;x&amp;lt;/script&amp;gt;")).toBe(
+      "&amp;lt;script&amp;gt;x&amp;lt;/script&amp;gt;",
+    );
+    expect(sanitizeHeaderHtml("&lt;script&gt;x&lt;/script&gt;")).toBe("&lt;script&gt;x&lt;/script&gt;");
+  });
 });
