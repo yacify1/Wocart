@@ -30,7 +30,7 @@ const valid = (): AppearanceSettings => ({
   showContactLinks: true,
   headerHtml: "",
   logoAlignment: "right",
-  contactAlignment: "center",
+  contactAlignment: "right",
   contactLayout: "row",
 });
 
@@ -278,16 +278,24 @@ describe("the olive preset and storefront controls", () => {
   });
 });
 
-describe("contact strip controls", () => {
+describe("floating contact controls", () => {
   it("takes only the declared alignments and layouts", () => {
-    for (const contactAlignment of ["center", "left", "right"] as const) {
+    for (const contactAlignment of ["left", "right"] as const) {
       expect(appearanceSettingsProblem({ ...valid(), contactAlignment })).toBeNull();
     }
     for (const contactLayout of ["row", "column"] as const) {
       expect(appearanceSettingsProblem({ ...valid(), contactLayout })).toBeNull();
     }
-    expect(appearanceSettingsProblem({ ...valid(), contactAlignment: "top" })).toMatch(/center, left or right/);
+    expect(appearanceSettingsProblem({ ...valid(), contactAlignment: "top" })).toMatch(/left or right/);
+    expect(appearanceSettingsProblem({ ...valid(), contactAlignment: "center" as never })).toMatch(/left or right/);
     expect(appearanceSettingsProblem({ ...valid(), contactLayout: "grid" })).toMatch(/row or column/);
+  });
+
+  it("turns the retired center alignment into the right edge", () => {
+    expect(appearanceSettingsToTheme({ ...valid(), contactAlignment: "center" as never }).contactAlignment).toBe("right");
+    const flat = appearanceSettingsToTheme({ ...valid(), contactAlignment: "center" as never });
+    expect(appearanceThemeSettingsOf({ ...flat, contactAlignment: "center" })?.contactAlignment).toBe("right");
+    expect(mergeAppearance({ ...valid(), contactAlignment: "center" as never }, { colorSchemes: clone(APPEARANCE_DEFAULT_SCHEMES), pageScheme: "scheme-1" }).settings?.contactAlignment).toBe("right");
   });
 
   it("writes, reads and keeps the visibility and shape of the contact strip", () => {
@@ -312,7 +320,7 @@ describe("contact strip controls", () => {
       contactLayout: "column",
     });
     expect(appearanceThemeSettingsOf({ ...flat, contactAlignment: "top", contactLayout: "grid" })).toMatchObject({
-      contactAlignment: "center",
+      contactAlignment: "right",
       contactLayout: "row",
     });
     expect(
@@ -679,13 +687,24 @@ describe("sanitizeHeaderHtml", () => {
     expect(sanitizeHeaderHtml("A & B < C")).toBe("A &amp; B &lt; C");
   });
 
-  it("decodes pasted entities once so markup is not double-escaped", () => {
+  it("decodes pasted entities repeatedly so markup is not double-escaped", () => {
     expect(sanitizeHeaderHtml('&lt;strong class=&quot;promo&quot;&gt;A &amp; B&lt;/strong&gt;')).toBe(
       '<strong class="promo">A &amp; B</strong>',
     );
+    expect(sanitizeHeaderHtml('&amp;amp;lt;div class=&quot;promo&quot;&gt;Sale&lt;/div&gt;')).toBe(
+      '<div class="promo">Sale</div>',
+    );
     expect(sanitizeHeaderHtml("&amp;lt;script&amp;gt;x&amp;lt;/script&amp;gt;")).toBe(
-      "&amp;lt;script&amp;gt;x&amp;lt;/script&amp;gt;",
+      "&lt;script&gt;x&lt;/script&gt;",
     );
     expect(sanitizeHeaderHtml("&lt;script&gt;x&lt;/script&gt;")).toBe("&lt;script&gt;x&lt;/script&gt;");
+  });
+
+  it("keeps safe inline styles and drops dangerous declarations", () => {
+    expect(
+      sanitizeHeaderHtml(
+        '<div style="color: #fff; background-color: rgb(1, 2, 3); position: fixed; background-image: url(https://x.test/a.png)">Sale</div>',
+      ),
+    ).toBe('<div style="color: #fff; background-color: rgb(1, 2, 3)">Sale</div>');
   });
 });

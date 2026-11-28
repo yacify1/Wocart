@@ -385,7 +385,7 @@ describe("AppearanceSettings", () => {
     expect(host.querySelector("aside")!.textContent).toContain("store.appearance_section_features-bar");
   });
 
-  it("saves and previews the contact strip's visibility and direction", async () => {
+  it("saves and previews the floating widget's visibility and side", async () => {
     seam.appearance = {
       ...appearance(),
       primaryLocale: "ar",
@@ -405,31 +405,28 @@ describe("AppearanceSettings", () => {
     await click(toggleFor("store.appearance_control_showContactLinks"));
     const preview = host.querySelector("aside")!;
     expect(preview.textContent).not.toContain("store.appearance_preview_header_html");
-    expect(preview.textContent).not.toContain("store.appearance_group_contact");
+    expect(preview.querySelector("[data-preview-contact-widget]")).toBeNull();
 
     await setValue(selectFor("store.appearance_control_contactAlignment"), "left", "change");
-    await setValue(selectFor("store.appearance_control_contactLayout"), "column", "change");
     await click(saveButton(section("store.appearance_storefront_title")));
     expect(seam.calls[0]).toMatchObject({
       showHeaderHtml: false,
       showContactLinks: false,
       contactAlignment: "left",
-      contactLayout: "column",
     });
 
     await click(toggleFor("store.appearance_control_showContactLinks"));
-    const previewContact = [...host.querySelectorAll<HTMLElement>("[dir]")].find((node) =>
-      node.textContent?.includes("store.appearance_contact_phone"),
-    )!;
-    expect(previewContact.getAttribute("dir")).toBe("rtl");
-    expect(previewContact.getAttribute("style")).toContain("flex-direction: column");
-    expect(previewContact.getAttribute("style")).toContain("align-items: flex-end");
+    const previewWidget = host.querySelector<HTMLElement>("[data-preview-contact-widget]")!;
+    expect(previewWidget.getAttribute("dir")).toBe("rtl");
+    expect(previewWidget.getAttribute("data-contact-align")).toBe("left");
+    expect(previewWidget.getAttribute("style")).toContain("right: 0.75rem");
+    expect(previewWidget.getAttribute("style")).not.toContain("left:");
   });
 
   it("renders decoded header HTML and every configured contact icon in the preview", async () => {
     seam.appearance = {
       ...appearance(),
-      headerHtml: "&lt;strong&gt;Sale &amp; ship&lt;/strong&gt;",
+      headerHtml: "&amp;lt;div class=&quot;promo&quot;&amp;gt;&amp;lt;strong&amp;gt;Sale &amp;amp; ship&amp;lt;/strong&amp;gt;&amp;lt;/div&amp;gt;",
       contact: {
         contactPhone: "tel:+21355123456",
         contactEmail: "hello@example.dz",
@@ -440,8 +437,9 @@ describe("AppearanceSettings", () => {
     };
     await render();
     const preview = host.querySelector("aside")!;
-    expect(preview.querySelector("strong")?.textContent).toBe("Sale & ship");
+    expect(preview.querySelector("div.promo > strong")?.textContent).toBe("Sale & ship");
     expect(preview.textContent).not.toContain("&lt;strong&gt;");
+    expect(preview.textContent).not.toContain("&amp;amp;lt;");
     for (const label of [
       "store.appearance_contact_phone",
       "store.appearance_contact_whatsapp",

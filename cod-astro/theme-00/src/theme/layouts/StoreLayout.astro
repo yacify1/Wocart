@@ -64,18 +64,23 @@ const isRTL = store.isRTL;
 // request reaches only after the middleware rewrote it.
 const canonical = canonicalUrl(Astro.url.origin, store, Astro.url.search);
 const alternates = store.routing.published.length > 1 ? alternateLinks(store.pathname, store.routing, Astro.url.origin) : [];
-// The floating launcher, on the pages the merchant switched it on. The
-// thank-you page offers its own button instead.
+// The header's floating contact widget already carries WhatsApp when it is on,
+// so the standalone launcher would sit on top of it. The thank-you page offers
+// its own button instead.
 const whatsapp = storeWhatsApp({ config, content }, { ...whatsappPage, url: canonical });
-const launcherShown = whatsapp !== null && showsWidgetOn(whatsapp.surfaces, store.pathname) && matchStorefrontPath(store.pathname)?.type !== "thankYou";
+const settings = settingsOf(store);
+const launcherShown =
+  whatsapp !== null &&
+  !(header && settings.showContactLinks) &&
+  showsWidgetOn(whatsapp.surfaces, store.pathname) &&
+  matchStorefrontPath(store.pathname)?.type !== "thankYou";
 
 const pageTitle = title ?? config.metaTitle ?? config.name;
 const pageDesc = description ?? config.metaDescription ?? message(content, "defaultMetaDescription", { storeName: config.name }, locale);
 const pageOg = ogImage ?? config.ogImage?.url ?? "";
 
-// The merchant's choices for this theme, checked against its declaration: a
-// value it does not accept falls back to the theme's default.
-const settings = settingsOf(store);
+// The merchant's choices for this theme were read above: a value it does not
+// accept falls back to the theme's default.
 const mobileNavShown = !hideMobileNav && !settings.hideMenu;
 const fonts = { body: themeFont(settings.font, BODY_FONT), heading: themeFont(settings.headingFont, HEADING_FONT) };
 ---

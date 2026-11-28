@@ -20,6 +20,8 @@ export const arLayout: LayoutStrings = {
   footerRights: "جميع الحقوق محفوظة",
   footerWhatsapp: "تواصل معنا عبر واتساب",
   contactLinks: "روابط التواصل",
+  contactOpen: "فتح خيارات التواصل",
+  contactClose: "إغلاق خيارات التواصل",
   contactCall: "اتصل بنا",
   contactMail: "راسلنا",
   socialInstagram: "إنستغرام",

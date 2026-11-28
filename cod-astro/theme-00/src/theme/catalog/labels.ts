@@ -183,8 +183,6 @@ export const OPTION = {
   square: text("مربعة", "Carré", "Square"),
   portrait: text("طولية", "Portrait", "Portrait"),
   landscape: text("عرضية", "Paysage", "Landscape"),
-  row: text("صف", "Ligne", "Row"),
-  column: text("عمود", "Colonne", "Column"),
   start: text("في البداية", "Au début", "At the start"),
   end: text("في النهاية", "À la fin", "At the end"),
   center: text("في الوسط", "Au centre", "Centered"),
@@ -274,7 +272,7 @@ export const SETTING = {
   hideHeroImages: text("إخفاء صور البانر", "Masquer les photos des bannières", "Hide hero & banner photos"),
   headerHtml: text("HTML أعلى الرأس", "HTML au-dessus de l’en-tête", "Header HTML"),
   showHeaderHtml: text("إظهار شريط HTML", "Afficher le HTML de l’en-tête", "Show header HTML"),
-  showContactLinks: text("إظهار روابط التواصل", "Afficher les liens de contact", "Show contact links"),
+  showContactLinks: text("إظهار أداة التواصل العائمة", "Afficher le widget de contact flottant", "Show floating contact widget"),
   contactPhone: text("الهاتف / واتساب", "Téléphone / WhatsApp", "Phone / WhatsApp"),
   contactEmail: text("البريد الإلكتروني", "Adresse e-mail", "Email address"),
   instagramUrl: text("إنستغرام", "Instagram", "Instagram"),
@@ -290,8 +288,7 @@ export const SETTING = {
   headerHtmlBackgroundColor: text("لون خلفية شريط HTML", "Couleur de fond du HTML de l’en-tête", "Header HTML background color"),
   headerHtmlButtonColor: text("لون أزرار شريط HTML", "Couleur des boutons du HTML de l’en-tête", "Header HTML button color"),
   logoAlignment: text("محاذاة الشعار", "Alignement du logo", "Logo alignment"),
-  contactAlignment: text("محاذاة أزرار التواصل", "Alignement des boutons de contact", "Contact alignment"),
-  contactLayout: text("اتجاه أزرار التواصل", "Disposition des boutons de contact", "Contact layout"),
+  contactAlignment: text("جهة أداة التواصل العائمة", "Côté du widget de contact flottant", "Floating contact side"),
 };
 
 /** The hide and photo controls for one home section, in the editor's words. */

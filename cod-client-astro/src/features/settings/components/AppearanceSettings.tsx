@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Check, Layers3, Loader2, Palette, SlidersHorizontal, Type } from "lucide-react";
+import { Check, Layers3, Loader2, MessageCircle, Palette, SlidersHorizontal, Type, X } from "lucide-react";
 import { Alert, Badge, Field, Input, Select, Switch, SwitchField, Textarea } from "@/components/ui";
 import { useLocale, useT } from "@/i18n/react";
 import { notify } from "@/lib/notify";
@@ -13,7 +13,6 @@ import {
   APPEARANCE_COLOR_ROLES,
   APPEARANCE_CONTACT_ALIGNMENTS,
   APPEARANCE_CONTACT_KEYS,
-  APPEARANCE_CONTACT_LAYOUTS,
   APPEARANCE_DEFAULT_SCHEMES,
   APPEARANCE_HEADER_HTML_MAX,
   APPEARANCE_HOME_SECTIONS,
@@ -26,6 +25,7 @@ import {
   colorSchemesProblem,
   effectiveSchemeColor,
   effectiveSchemeColors,
+  normalizeContactAlignment,
   sanitizeHeaderHtml,
   type AppearanceChromeKey,
   type AppearanceColorRole,
@@ -610,14 +610,11 @@ function AppearancePreview({
   );
   const heroButton = hero.buttonColor ?? colors.button;
   const categoryBg = category.backgroundColor ?? colors.background;
-  const contactStart = direction === "rtl" ? "flex-end" : "flex-start";
-  const contactEnd = direction === "rtl" ? "flex-start" : "flex-end";
-  const contactPosition =
-    controls.contactAlignment === "center" ? "center" : controls.contactAlignment === "left" ? contactStart : contactEnd;
-  const contactStyle: CSSProperties =
-    controls.contactLayout === "column"
-      ? { flexDirection: "column", alignItems: contactPosition }
-      : { flexDirection: "row", justifyContent: contactPosition };
+  const contactWidgetOnLeft =
+    direction === "ltr" ? controls.contactAlignment === "left" : controls.contactAlignment === "right";
+  const contactWidgetStyle: CSSProperties = contactWidgetOnLeft
+    ? { left: "0.75rem" }
+    : { right: "0.75rem" };
   const previewContacts = [
     ...(contact.contactPhone
       ? [
@@ -645,7 +642,7 @@ function AppearancePreview({
         </p>
       </div>
       <div
-        className="overflow-hidden rounded-lg border xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain"
+        className="relative max-h-[70vh] overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border scroll-smooth xl:min-h-0 xl:max-h-none xl:flex-1"
         style={{ borderColor: colors.border }}
       >
         <div
@@ -660,7 +657,7 @@ function AppearancePreview({
             style={{ background: headerHtmlColors.backgroundColor ?? colors.background, color: headerHtmlColors.color ?? colors.text }}
           >
             {controls.headerHtml.trim() ? (
-              <span dangerouslySetInnerHTML={{ __html: sanitizeHeaderHtml(controls.headerHtml) }} />
+              <div className="max-w-full [&_a]:underline" dangerouslySetInnerHTML={{ __html: sanitizeHeaderHtml(controls.headerHtml) }} />
             ) : (
               t("store.appearance_preview_header_html")
             )}
@@ -736,23 +733,38 @@ function AppearancePreview({
             );
           })}
           {controls.showContactLinks && previewContacts.length > 0 && (
-            <div className="space-y-1 border-t border-border/60 pt-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.heading }}>
-                {t("store.appearance_group_contact")}
-              </p>
-              <div dir={direction} style={contactStyle} className="flex gap-1.5">
-                {previewContacts.map((contact) => (
-                  <span
-                    key={contact.key}
-                    aria-label={contact.label}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold"
-                    style={{ borderColor: colors.border, color: colors.text }}
-                  >
-                    <PreviewContactIcon name={contact.icon} />
-                    {contact.label}
-                  </span>
-                ))}
-              </div>
+            <div
+              dir={direction}
+              data-preview-contact-widget="true"
+              data-contact-align={controls.contactAlignment}
+              className="absolute bottom-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-col items-stretch gap-1 rounded-lg border p-1.5 shadow-lg"
+              style={{ ...contactWidgetStyle, background: colors.background, color: colors.text, borderColor: colors.border }}
+            >
+              <span
+                aria-hidden="true"
+                className="inline-flex size-5 items-center justify-center self-end rounded-full border"
+                style={{ borderColor: colors.border, color: colors.text }}
+              >
+                <X size={10} />
+              </span>
+              {previewContacts.map((contact) => (
+                <span
+                  key={contact.key}
+                  aria-label={contact.label}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold"
+                  style={{ borderColor: colors.border, color: colors.text }}
+                >
+                  <PreviewContactIcon name={contact.icon} />
+                  {contact.label}
+                </span>
+              ))}
+              <span
+                aria-label={t("store.appearance_group_contact")}
+                className="inline-flex size-7 items-center justify-center self-end rounded-full"
+                style={{ background: colors.button, color: colors.buttonText }}
+              >
+                <MessageCircle size={14} />
+              </span>
             </div>
           )}
           <div className="space-y-3 border-t border-border/60 pt-3">
@@ -828,7 +840,7 @@ export function AppearanceSettings() {
     showContactLinks: true,
     headerHtml: "",
     logoAlignment: "right" as AppearanceLogoAlignment,
-    contactAlignment: "center" as AppearanceContactAlignment,
+    contactAlignment: "right" as AppearanceContactAlignment,
     contactLayout: "row" as AppearanceContactLayout,
   });
   const [sections, setSections] = useState<StoreAppearance["sections"]>(emptySections);
@@ -870,7 +882,7 @@ export function AppearanceSettings() {
       showContactLinks: saved.showContactLinks ?? controls.showContactLinks,
       headerHtml: typeof saved.headerHtml === "string" ? saved.headerHtml : controls.headerHtml,
       logoAlignment: saved.logoAlignment ?? controls.logoAlignment,
-      contactAlignment: saved.contactAlignment ?? controls.contactAlignment,
+      contactAlignment: normalizeContactAlignment(saved.contactAlignment),
       contactLayout: saved.contactLayout ?? controls.contactLayout,
     });
     setChromeColors(safeChromeColors(saved.chromeColors));
@@ -1204,48 +1216,26 @@ export function AppearanceSettings() {
                 ))}
               </Select>
             </FieldRow>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <FieldRow
-                label={t("store.appearance_control_contactAlignment")}
-                help={t("store.appearance_control_contactAlignment_hint")}
+            <FieldRow
+              label={t("store.appearance_control_contactAlignment")}
+              help={t("store.appearance_control_contactAlignment_hint")}
+            >
+              <Select
+                value={controls.contactAlignment}
+                onChange={(event) =>
+                  setControls((current) => ({
+                    ...current,
+                    contactAlignment: event.target.value as AppearanceContactAlignment,
+                  }))
+                }
               >
-                <Select
-                  value={controls.contactAlignment}
-                  onChange={(event) =>
-                    setControls((current) => ({
-                      ...current,
-                      contactAlignment: event.target.value as AppearanceContactAlignment,
-                    }))
-                  }
-                >
-                  {APPEARANCE_CONTACT_ALIGNMENTS.map((alignment) => (
-                    <option key={alignment} value={alignment}>
-                      {t(`store.appearance_contact_${alignment}`)}
-                    </option>
-                  ))}
-                </Select>
-              </FieldRow>
-              <FieldRow
-                label={t("store.appearance_control_contactLayout")}
-                help={t("store.appearance_control_contactLayout_hint")}
-              >
-                <Select
-                  value={controls.contactLayout}
-                  onChange={(event) =>
-                    setControls((current) => ({
-                      ...current,
-                      contactLayout: event.target.value as AppearanceContactLayout,
-                    }))
-                  }
-                >
-                  {APPEARANCE_CONTACT_LAYOUTS.map((layout) => (
-                    <option key={layout} value={layout}>
-                      {t(`store.appearance_contact_layout_${layout}`)}
-                    </option>
-                  ))}
-                </Select>
-              </FieldRow>
-            </div>
+                {APPEARANCE_CONTACT_ALIGNMENTS.map((alignment) => (
+                  <option key={alignment} value={alignment}>
+                    {t(`store.appearance_contact_${alignment}`)}
+                  </option>
+                ))}
+              </Select>
+            </FieldRow>
             <div className="grid gap-3 sm:grid-cols-3">
               <SwitchField
                 label={t("store.appearance_control_hideLogo")}

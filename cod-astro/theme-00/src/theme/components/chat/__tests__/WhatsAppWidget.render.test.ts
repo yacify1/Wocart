@@ -218,7 +218,11 @@ describe("StoreLayout surface gating and off state", () => {
   });
 
   it("starts a product page's chat with its product, in the theme's words when the merchant wrote none", async () => {
-    const config: StoreConfig = { ...BASE_CONFIG, whatsapp: BASE_WIDGET };
+    const config: StoreConfig = {
+      ...BASE_CONFIG,
+      whatsapp: BASE_WIDGET,
+      themeSettings: { showContactLinks: false },
+    };
     const { document } = await renderLayout("/products/robe", config, { whatsapp: { kind: "product", product: "Robe kabyle" } });
     const text = new URL(document.getElementById("wa-cta")!.getAttribute("href")!).searchParams.get("text");
     expect(text).toBe(enContent.waPrefillProductDefault.replace("{product}", "Robe kabyle").replace("{url}", "https://example.dz/products/robe"));
@@ -231,8 +235,21 @@ describe("StoreLayout surface gating and off state", () => {
         ...BASE_WIDGET,
         surfaces: { ...BASE_WIDGET.surfaces, home: true },
       },
+      themeSettings: { showContactLinks: false },
     };
     const { document } = await renderLayout("/", config);
     expect(document.getElementById("wa-widget")).not.toBeNull();
+  });
+
+  it("lets the floating contact widget carry WhatsApp when that widget is shown", async () => {
+    const config: StoreConfig = {
+      ...BASE_CONFIG,
+      whatsapp: BASE_WIDGET,
+      themeSettings: { showContactLinks: true },
+    };
+    const { document } = await renderLayout("/", config);
+    expect(document.getElementById("wa-widget")).toBeNull();
+    expect(document.querySelector("[data-contact-widget]")).not.toBeNull();
+    expect(document.querySelector('[data-contact-icon="whatsapp"]')).not.toBeNull();
   });
 });

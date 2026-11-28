@@ -40,8 +40,10 @@ const SHARED_UI_LABELS = new Set([
   "viewAllCta",
   "allProductsSection",
   "footerWhatsapp",
-  // The header's contact strip and its action links.
+  // The header's floating contact widget and its action links.
   "contactLinks",
+  "contactOpen",
+  "contactClose",
   "contactCall",
   "contactMail",
   // A social link's accessible name when the merchant gave it none.

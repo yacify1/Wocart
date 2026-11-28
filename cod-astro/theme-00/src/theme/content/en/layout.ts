@@ -20,6 +20,8 @@ export const enLayout: LayoutStrings = {
   footerRights: "All rights reserved",
   footerWhatsapp: "Chat with us on WhatsApp",
   contactLinks: "Contact links",
+  contactOpen: "Open contact options",
+  contactClose: "Close contact options",
   contactCall: "Call us",
   contactMail: "Email us",
   socialInstagram: "Instagram",

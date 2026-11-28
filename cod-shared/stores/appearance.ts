@@ -76,8 +76,10 @@ export const APPEARANCE_MEDIA_KEY = new RegExp(
 export const APPEARANCE_LOGO_ALIGNMENTS = ["right", "left", "center"] as const;
 export type AppearanceLogoAlignment = (typeof APPEARANCE_LOGO_ALIGNMENTS)[number];
 
-export const APPEARANCE_CONTACT_ALIGNMENTS = ["center", "left", "right"] as const;
+export const APPEARANCE_CONTACT_ALIGNMENTS = ["left", "right"] as const;
 export type AppearanceContactAlignment = (typeof APPEARANCE_CONTACT_ALIGNMENTS)[number];
+export const normalizeContactAlignment = (value: unknown): AppearanceContactAlignment =>
+  value === "left" ? "left" : "right";
 
 export const APPEARANCE_CONTACT_LAYOUTS = ["row", "column"] as const;
 export type AppearanceContactLayout = (typeof APPEARANCE_CONTACT_LAYOUTS)[number];
@@ -276,10 +278,29 @@ const CHROME_COLOR_FLAT_KEYS: Record<AppearanceChromeKey, Record<AppearanceSecti
   },
 };
 
-const HEADER_HTML_TAGS = new Set(["a", "b", "strong", "i", "em", "u", "small", "span", "br"]);
+const HEADER_HTML_TAGS = new Set(["a", "b", "div", "strong", "i", "em", "u", "small", "span", "br"]);
 const HEADER_HTML_ATTR = /([a-z][a-z0-9-]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
 const HEADER_HTML_TAG = /<\/?([a-z][a-z0-9]*)\b([^>]*)>/gi;
 const SAFE_HEADER_HREF = /^(https?:\/\/|\/|#|\?|mailto:|tel:)/i;
+const SAFE_HEADER_STYLE_PROPERTIES = new Set([
+  "color",
+  "background-color",
+  "font-size",
+  "font-weight",
+  "font-style",
+  "text-align",
+  "text-decoration",
+  "line-height",
+  "padding",
+  "padding-inline",
+  "padding-block",
+  "margin",
+  "margin-inline",
+  "margin-block",
+  "border-color",
+  "border-radius",
+]);
+const SAFE_HEADER_STYLE_VALUE = /^(?!.*(?:url\s*\(|expression\s*\(|javascript:|behavior:|@import))[A-Za-z0-9\s#(),.%+\/'-]{1,160}$/i;
 
 const escapeHtml = (value: string): string =>
   value
@@ -305,8 +326,34 @@ const HEADER_HTML_ENTITIES: Record<string, string> = {
   "#38": "&",
   "#x26": "&",
 };
-const decodeHeaderEntities = (value: string): string =>
-  value.replace(HEADER_HTML_ENTITY, (entity, name: string) => HEADER_HTML_ENTITIES[name.toLowerCase()] ?? entity);
+const decodeHeaderEntities = (value: string): string => {
+  let decoded = value;
+  for (let pass = 0; pass < 4; pass += 1) {
+    const next = decoded.replace(
+      HEADER_HTML_ENTITY,
+      (entity, name: string) => HEADER_HTML_ENTITIES[name.toLowerCase()] ?? entity,
+    );
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded;
+};
+
+const safeHeaderStyle = (value: string): string =>
+  value
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter(Boolean)
+    .map((declaration) => {
+      const separator = declaration.indexOf(":");
+      if (separator < 0) return "";
+      const property = declaration.slice(0, separator).trim().toLowerCase();
+      const raw = declaration.slice(separator + 1).trim();
+      if (!SAFE_HEADER_STYLE_PROPERTIES.has(property) || !SAFE_HEADER_STYLE_VALUE.test(raw)) return "";
+      return `${property}: ${raw}`;
+    })
+    .filter(Boolean)
+    .join("; ");
 
 const MARQUEE_DISCARDED_HTML =
   /<(script|style|iframe|object|embed|svg|template)\b[^>]*>[\s\S]*?<\/\1\s*>|<!--[\s\S]*?-->/gi;
@@ -340,6 +387,9 @@ export function sanitizeHeaderHtml(value: string): string {
         attributes.push(`href="${escapeHtml(raw.trim())}"`);
       } else if (tag === "a" && name === "target" && raw.trim() === "_blank") {
         attributes.push('target="_blank"', 'rel="noopener noreferrer"');
+      } else if (name === "style") {
+        const style = safeHeaderStyle(raw);
+        if (style) attributes.push(`style="${escapeHtml(style)}"`);
       }
     }
     const selfClosing = /\/\s*$/.test(match[2] ?? "") ? " /" : "";
@@ -576,7 +626,7 @@ export function appearanceSettingsToTheme(settings: AppearanceSettings): Record<
     showContactLinks: settings.showContactLinks ?? true,
     headerHtml: sanitizeHeaderHtml(settings.headerHtml ?? ""),
     logoAlignment: settings.logoAlignment ?? "right",
-    contactAlignment: settings.contactAlignment ?? "center",
+    contactAlignment: normalizeContactAlignment(settings.contactAlignment),
     contactLayout: settings.contactLayout ?? "row",
   };
   for (const section of APPEARANCE_HOME_SECTIONS) {
@@ -702,9 +752,7 @@ export function appearanceThemeSettingsOf(stored: Record<string, unknown> | null
     logoAlignment: APPEARANCE_LOGO_ALIGNMENTS.includes(stored.logoAlignment as AppearanceLogoAlignment)
       ? (stored.logoAlignment as AppearanceLogoAlignment)
       : "right",
-    contactAlignment: APPEARANCE_CONTACT_ALIGNMENTS.includes(stored.contactAlignment as AppearanceContactAlignment)
-      ? (stored.contactAlignment as AppearanceContactAlignment)
-      : "center",
+    contactAlignment: normalizeContactAlignment(stored.contactAlignment),
     contactLayout: APPEARANCE_CONTACT_LAYOUTS.includes(stored.contactLayout as AppearanceContactLayout)
       ? (stored.contactLayout as AppearanceContactLayout)
       : "row",
@@ -788,7 +836,7 @@ export function appearanceSettingsProblem(value: unknown): string | null {
     value.contactAlignment !== undefined &&
     !(APPEARANCE_CONTACT_ALIGNMENTS as readonly string[]).includes(value.contactAlignment as string)
   ) {
-    return "contactAlignment must be center, left or right";
+    return "contactAlignment must be left or right";
   }
   if (
     value.contactLayout !== undefined &&
@@ -878,7 +926,7 @@ export function mergeAppearance(
     showContactLinks: next.showContactLinks ?? current?.showContactLinks ?? true,
     headerHtml: sanitizeHeaderHtml(next.headerHtml ?? current?.headerHtml ?? ""),
     logoAlignment: next.logoAlignment ?? current?.logoAlignment ?? "right",
-    contactAlignment: next.contactAlignment ?? current?.contactAlignment ?? "center",
+    contactAlignment: normalizeContactAlignment(next.contactAlignment ?? current?.contactAlignment),
     contactLayout: next.contactLayout ?? current?.contactLayout ?? "row",
     sections: Object.keys(sections).length > 0 ? sections : undefined,
     chromeColors: Object.keys(chromeColors).length > 0 ? chromeColors : undefined,

@@ -20,6 +20,8 @@ export const frLayout: LayoutStrings = {
   footerRights: "Tous droits réservés",
   footerWhatsapp: "Écrivez-nous sur WhatsApp",
   contactLinks: "Liens de contact",
+  contactOpen: "Ouvrir les options de contact",
+  contactClose: "Fermer les options de contact",
   contactCall: "Appelez-nous",
   contactMail: "Écrivez-nous",
   socialInstagram: "Instagram",

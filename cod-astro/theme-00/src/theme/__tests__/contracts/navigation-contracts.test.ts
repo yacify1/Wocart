@@ -137,7 +137,11 @@ describe("the header and the footer's menu", () => {
       }),
     });
     expect(html).toContain('aria-label="Liens de contact"');
-    expect(html).toMatch(/class="header-contact[^"]*flex-row[^"]*items-center[^"]*gap-1\.5"/);
+    expect(html).toContain('data-contact-widget');
+    expect(html).toMatch(/data-contact-align="right"/);
+    expect(html).toContain('id="contact-panel"');
+    expect(html).toContain('aria-label="Ouvrir les options de contact"');
+    expect(html).toContain('aria-label="Fermer les options de contact"');
     expect(html).toMatch(/href="tel:\+21355123456"[^>]*>[\s\S]*?contact-label"[^>]*>Appelez-nous<\/span>\s*<\/a>/);
     expect(html).toMatch(/href="mailto:hello@example\.dz"[^>]*>[\s\S]*?contact-label"[^>]*>Écrivez-nous<\/span>\s*<\/a>/);
     expect(html).toMatch(/href="https:\/\/instagram\.com\/shop"[^>]*rel="noopener"[^>]*>[\s\S]*?contact-label"[^>]*>Instagram<\/span>\s*<\/a>/);
@@ -183,31 +187,35 @@ describe("the header and the footer's menu", () => {
     expect(hidden).not.toContain("Sale");
   });
 
-  it("aligns and orients the contact actions from the dashboard", async () => {
+  it("anchors the floating contact widget on the dashboard's side, with RTL margins", async () => {
     const renderWith = async (themeSettings: Record<string, unknown>) =>
       (await AstroContainer.create()).renderToString(Header, {
         props: { ...HEADER_PROPS, storeMenu: menu },
         locals: locals({ config: { ...TEST_CONFIG, themeSettings } }),
       });
     const saved = { contactPhone: "tel:+21355123456" };
-    expect(await renderWith(saved)).toMatch(/data-contact-align="center"/);
-    expect(await renderWith(saved)).toMatch(/data-contact-layout="row"/);
-
-    const column = await renderWith({ ...saved, contactAlignment: "left", contactLayout: "column" });
-    expect(column).toMatch(/data-contact-align="left"/);
-    expect(column).toMatch(/data-contact-layout="column"/);
-
-    const invalid = await renderWith({ ...saved, contactAlignment: "top", contactLayout: "grid" });
-    expect(invalid).toMatch(/data-contact-align="center"/);
-    expect(invalid).toMatch(/data-contact-layout="row"/);
+    expect(await renderWith(saved)).toMatch(/data-contact-align="right"/);
+    expect(await renderWith({ ...saved, contactAlignment: "left" })).toMatch(/data-contact-align="left"/);
+    expect(await renderWith({ ...saved, contactAlignment: "center" })).toMatch(/data-contact-align="right"/);
+    expect(await renderWith({ ...saved, contactAlignment: "top" })).toMatch(/data-contact-align="right"/);
 
     const source = readFileSync(resolve(process.cwd(), "src/theme/components/layout/Header.astro"), "utf8");
-    expect(source).toContain('[dir="rtl"] .header-contact[data-contact-align="left"]');
-    expect(source).toContain('[dir="rtl"] .header-contact[data-contact-align="right"]');
-    expect(source).toContain('.header-contact[data-contact-layout="column"]');
+    expect(source).toContain('data-contact-widget');
+    expect(source).toContain('data-contact-launcher');
+    expect(source).toContain('data-contact-panel');
     expect(source).toContain('position: fixed');
-    expect(source).toContain('[dir="rtl"] .header-contact[data-contact-layout="column"][data-contact-align="left"]');
-    expect(source).toContain('[dir="rtl"] .header-contact[data-contact-layout="column"][data-contact-align="right"]');
+    expect(source).toContain('bottom: calc(1rem + var(--safe-bottom))');
+    expect(source).toContain('.contact-widget[data-contact-align="left"]');
+    expect(source).toContain('.contact-widget[data-contact-align="right"]');
+    expect(source).toContain('[dir="rtl"] .contact-widget[data-contact-align="left"]');
+    expect(source).toContain('[dir="rtl"] .contact-widget[data-contact-align="right"]');
+    expect(source).toContain('env(safe-area-inset-left');
+    expect(source).toContain('env(safe-area-inset-right');
+    expect(source).toContain(':global(body.has-mobile-nav) .contact-widget');
+    expect(source).toContain('<script src="../../scripts/contact-widget.ts"></script>');
+
+    const layout = readFileSync(resolve(process.cwd(), "src/theme/layouts/StoreLayout.astro"), "utf8");
+    expect(layout).toContain("!(header && settings.showContactLinks)");
   });
 
   it("applies the store's header and header-strip colors without changing the scheme markers", async () => {
@@ -400,8 +408,7 @@ describe("the theme's settings", () => {
       showHeaderHtml: true,
       showContactLinks: true,
       logoAlignment: "right",
-      contactAlignment: "center",
-      contactLayout: "row",
+      contactAlignment: "right",
       homeHeroHidden: false,
       homeMarqueeHidden: false,
       homeMarqueeText: "",
