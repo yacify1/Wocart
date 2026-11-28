@@ -581,6 +581,7 @@ function AppearancePreview({
   title,
   subtitle,
   cta,
+  secondaryCta,
 }: {
   scheme: AppearanceColorScheme | undefined;
   detailColors: AppearanceDetailColors;
@@ -592,8 +593,10 @@ function AppearancePreview({
   title: string;
   subtitle: string;
   cta: string;
+  secondaryCta: string;
 }) {
   const t = useT("settings");
+  const [widgetOpen, setWidgetOpen] = useState(false);
   if (!scheme) return null;
   const colors = effectiveSchemeColors(scheme);
   const secondary = detailColors.secondaryButton ?? autoDetailSwatch("secondaryButton", scheme);
@@ -610,6 +613,14 @@ function AppearancePreview({
   );
   const heroButton = hero.buttonColor ?? colors.button;
   const categoryBg = category.backgroundColor ?? colors.background;
+  const heroImageUrl = typeof hero.image?.url === "string" ? hero.image.url : null;
+  const marqueeText = marquee.text?.trim() || t("store.appearance_preview_marquee");
+  const marqueeAccent = marquee.accentColor ?? MARQUEE_SECOND_AUTO;
+  const categoryCards = [
+    { key: "category-1", label: t("store.appearance_preview_category"), tint: colors.button },
+    { key: "category-2", label: t("store.appearance_preview_category"), tint: colors.accent },
+    { key: "category-3", label: t("store.appearance_preview_category"), tint: colors.heading },
+  ];
   const contactWidgetOnLeft =
     direction === "ltr" ? controls.contactAlignment === "left" : controls.contactAlignment === "right";
   const contactWidgetStyle: CSSProperties = contactWidgetOnLeft
@@ -628,6 +639,11 @@ function AppearancePreview({
       icon: CONTACT_ICON_OF[field.key],
     })),
   ];
+  const logo = (
+    <span className="text-[10px] font-semibold" style={{ color: colors.heading }}>
+      {t("store.appearance_preview_store")}
+    </span>
+  );
 
   return (
     <section
@@ -642,7 +658,10 @@ function AppearancePreview({
         </p>
       </div>
       <div
-        className="relative max-h-[70vh] overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border scroll-smooth xl:min-h-0 xl:max-h-none xl:flex-1"
+        data-preview-scroll="true"
+        tabIndex={0}
+        onWheel={(event) => event.stopPropagation()}
+        className="relative h-80 max-h-[70vh] overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border scroll-smooth xl:h-[calc(100vh-8rem)] xl:max-h-none xl:flex-1"
         style={{ borderColor: colors.border }}
       >
         <div
@@ -668,38 +687,65 @@ function AppearancePreview({
           style={{ background: colors.background, color: colors.text }}
         >
           {!controls.hideMenu && <span aria-hidden="true" className="text-xs">☰</span>}
-          {!controls.hideLogo && !controls.hideHeaderText && (
-            <span className="text-[10px] font-semibold" style={{ color: colors.heading }}>
-              {t("store.appearance_preview_store")}
-            </span>
-          )}
+          {!controls.hideLogo && !controls.hideHeaderText && controls.logoAlignment === "left" && logo}
           {controls.searchEnabled && <span aria-hidden="true" className="ms-auto text-xs">⌕</span>}
+          {!controls.hideLogo && !controls.hideHeaderText && controls.logoAlignment !== "left" && logo}
         </div>
-        <div className="space-y-3 p-3" style={{ background: colors.background, color: colors.text }}>
+        <div className="space-y-3 p-3 pb-16" style={{ background: colors.background, color: colors.text }}>
           {!hero.hidden && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  className="text-[10px] font-semibold uppercase tracking-wide"
-                  style={{ color: hero.color ?? colors.heading }}
-                >
-                  {t("store.appearance_preview_hero")}
-                </span>
-                <span
-                  className="rounded px-2 py-1 text-[10px] font-bold"
-                  style={{ background: heroButton, color: readableOn(heroButton) }}
-                >
-                  {t("store.appearance_preview_cta")}
-                </span>
+            <div
+              className="overflow-hidden rounded-lg border"
+              style={{ borderColor: colors.border, background: hero.backgroundColor ?? colors.background, color: hero.color ?? colors.text }}
+            >
+              {heroImageUrl && (
+                <img src={heroImageUrl} alt="" className="block aspect-[16/9] w-full object-cover" />
+              )}
+              <div className="space-y-2 p-3">
+                <p className="text-sm font-bold leading-snug" style={{ color: hero.color ?? colors.heading }}>
+                  {title}
+                </p>
+                <p className="text-[10px] leading-relaxed" style={{ color: hero.color ?? colors.text }}>
+                  {subtitle}
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span
+                    className="rounded-md px-2.5 py-1 text-[10px] font-bold"
+                    style={{ background: heroButton, color: readableOn(heroButton) }}
+                  >
+                    {cta}
+                  </span>
+                  <span
+                    className="rounded-md border px-2.5 py-1 text-[10px] font-bold"
+                    style={{ color: secondary, borderColor: secondary }}
+                  >
+                    {secondaryCta}
+                  </span>
+                </div>
               </div>
             </div>
           )}
           {!category.hidden && (
-            <div
-              className="rounded-md px-3 py-2 text-center text-[10px] font-semibold"
-              style={{ background: categoryBg, color: category.color ?? colors.heading }}
-            >
-              {t("store.appearance_preview_category")}
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.heading }}>
+                {t("store.appearance_preview_category")}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {categoryCards.map((card) => (
+                  <div
+                    key={card.key}
+                    data-preview-category-card="true"
+                    className="flex aspect-[3/4] items-end overflow-hidden rounded-md border p-1"
+                    style={{ borderColor: colors.border, background: mixHex(colors.background, card.tint, 0.18) }}
+                  >
+                    <span
+                      className="w-full truncate rounded px-1.5 py-1 text-center text-[9px] font-semibold"
+                      style={{ background: categoryBg, color: category.color ?? colors.heading }}
+                    >
+                      {card.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           {!marquee.hidden && (
@@ -710,12 +756,14 @@ function AppearancePreview({
               <div
                 dir={direction}
                 data-preview-marquee-track="true"
-                className="flex w-max min-w-full gap-6 py-1 text-[10px] font-semibold"
+                className="flex w-max min-w-full items-center gap-4 py-1 text-[10px] font-semibold"
               >
-                <span className="shrink-0">{t("store.appearance_preview_marquee")}</span>
-                <span className="shrink-0">{t("store.appearance_preview_marquee")}</span>
-                <span className="shrink-0">{t("store.appearance_preview_marquee")}</span>
-                <span className="shrink-0">{t("store.appearance_preview_marquee")}</span>
+                {[0, 1, 2, 3].map((copy) => (
+                  <span key={copy} className="flex shrink-0 items-center gap-4">
+                    <span>{marqueeText}</span>
+                    <span aria-hidden="true" className="size-1.5 rounded-full" style={{ background: marqueeAccent }} />
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -732,13 +780,57 @@ function AppearancePreview({
               </div>
             );
           })}
-          {controls.showContactLinks && previewContacts.length > 0 && (
+          <div className="space-y-2 border-t border-border/60 pt-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.heading }}>
+              {t("store.appearance_preview_field")}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {[colors.button, colors.accent].map((tint, index) => (
+                <div
+                  key={tint}
+                  data-preview-product-card="true"
+                  className="space-y-1.5 rounded-md border p-1.5"
+                  style={{ borderColor: colors.border, background: colors.background }}
+                >
+                  <div className="aspect-square rounded" style={{ background: mixHex(colors.background, tint, 0.22) }} />
+                  <p className="truncate text-[10px] font-semibold" style={{ color: colors.heading }}>
+                    {index === 0 ? title : t("store.appearance_preview_store")}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="text-[9px] line-through" style={{ color: oldPrice }}>
+                      {t("store.appearance_preview_was")}
+                    </span>
+                    <span className="text-[10px] font-bold" style={{ color: newPrice }}>
+                      {t("store.appearance_preview_price")}
+                    </span>
+                    <span
+                      className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                      style={{ background: offer, color: readableOn(offer) }}
+                    >
+                      {t("store.appearance_preview_offer")}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {controls.showContactLinks && previewContacts.length > 0 && (
+          <div
+            dir={direction}
+            data-preview-contact-widget="true"
+            data-open={widgetOpen}
+            data-contact-align={controls.contactAlignment}
+            className={`absolute bottom-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-col gap-1 ${
+              contactWidgetOnLeft ? "items-start" : "items-end"
+            }`}
+            style={contactWidgetStyle}
+          >
             <div
-              dir={direction}
-              data-preview-contact-widget="true"
-              data-contact-align={controls.contactAlignment}
-              className="absolute bottom-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-col items-stretch gap-1 rounded-lg border p-1.5 shadow-lg"
-              style={{ ...contactWidgetStyle, background: colors.background, color: colors.text, borderColor: colors.border }}
+              data-preview-contact-panel="true"
+              hidden={!widgetOpen}
+              className="flex w-full flex-col gap-1 rounded-lg border p-1.5 shadow-lg"
+              style={{ background: colors.background, color: colors.text, borderColor: colors.border }}
             >
               <span
                 aria-hidden="true"
@@ -758,62 +850,20 @@ function AppearancePreview({
                   {contact.label}
                 </span>
               ))}
-              <span
-                aria-label={t("store.appearance_group_contact")}
-                className="inline-flex size-7 items-center justify-center self-end rounded-full"
-                style={{ background: colors.button, color: colors.buttonText }}
-              >
-                <MessageCircle size={14} />
-              </span>
             </div>
-          )}
-          <div className="space-y-3 border-t border-border/60 pt-3">
-          <div className="space-y-1">
-            <p className="text-base font-bold leading-snug" style={{ color: colors.heading }}>
-              {title}
-            </p>
-            <p className="text-xs leading-relaxed" style={{ color: colors.text }}>
-              {subtitle}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs line-through" style={{ color: oldPrice }}>
-              {t("store.appearance_preview_was")}
-            </span>
-            <span className="text-base font-bold" style={{ color: newPrice }}>
-              {t("store.appearance_preview_price")}
-            </span>
-            <span
-              className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
-              style={{ background: offer, color: readableOn(offer) }}
-            >
-              {t("store.appearance_preview_offer")}
-            </span>
-          </div>
-          </div>
-          <div className="space-y-2 border-t border-border/60 pt-3">
-          <div
-            className="rounded-lg border px-3 py-2 text-xs"
-            style={{ borderColor: colors.border, color: colors.text }}
-          >
-            {t("store.appearance_preview_field")}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span
-              className="rounded-lg px-3 py-2 text-center text-xs font-bold"
+            <button
+              type="button"
+              data-preview-contact-launcher="true"
+              aria-label={t("store.appearance_group_contact")}
+              aria-expanded={widgetOpen}
+              onClick={() => setWidgetOpen((open) => !open)}
+              className="inline-flex size-8 items-center justify-center rounded-full shadow-lg"
               style={{ background: colors.button, color: colors.buttonText }}
             >
-              {cta}
-            </span>
-            <span
-              className="rounded-lg border px-3 py-2 text-center text-xs font-bold"
-              style={{ color: secondary, borderColor: secondary }}
-            >
-              {t("store.appearance_preview_secondary_cta")}
-            </span>
+              {widgetOpen ? <X size={14} /> : <MessageCircle size={14} />}
+            </button>
           </div>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );
@@ -846,6 +896,7 @@ export function AppearanceSettings() {
   const [sections, setSections] = useState<StoreAppearance["sections"]>(emptySections);
   const [chromeColors, setChromeColors] = useState<AppearanceChromeColors>(() => safeChromeColors({}));
   const [contact, setContact] = useState<AppearanceContact>({});
+  const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
   const sectionVersion = useRef(0);
 
   function applySaved(saved: StoreAppearance, initial = false, sectionsSaved = false) {
@@ -959,9 +1010,10 @@ export function AppearanceSettings() {
     setSections((all) => ({ ...all, [key]: { ...all[key], ...change } }));
   }
 
-  async function persistHeroImage(image: MediaImage) {
+  async function persistHeroImage(image: MediaImage, previous: MediaImage | null) {
     const edit = sectionImageOf(image);
     if (!edit) return;
+    setHeroUploadError(null);
     try {
       const saved = await saveAppearance({ sections: { hero: { image: edit } } });
       const savedImage = savedSectionImage(saved.sections?.hero?.image);
@@ -970,7 +1022,10 @@ export function AppearanceSettings() {
       }
       notify.success(common("feedback.uploaded"));
     } catch {
-      notify.error(t("store.save_error"));
+      setSections((all) => ({ ...all, hero: { ...all.hero, image: previous } }));
+      const message = common("feedback.upload_failed");
+      setHeroUploadError(message);
+      notify.error(message);
     }
   }
 
@@ -1030,6 +1085,7 @@ export function AppearanceSettings() {
   const previewTitle = localeDrafts.heroTitle?.trim() || t("store.appearance_preview_title");
   const previewSubtitle = localeDrafts.heroSubtitle?.trim() || t("store.appearance_preview_text");
   const previewCta = localeDrafts.heroCtaPrimary?.trim() || t("store.appearance_preview_cta");
+  const previewSecondaryCta = localeDrafts.heroCtaSecondary?.trim() || t("store.appearance_preview_secondary_cta");
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -1411,13 +1467,21 @@ export function AppearanceSettings() {
                       onChange={(image: MediaImage | null) => {
                         const next = isMediaImage(image) ? image : null;
                         updateSection(key, { image: next });
-                        if (key === "hero" && next) void persistHeroImage(next);
+                        if (key === "hero") {
+                          if (next) void persistHeroImage(next, sections.hero?.image ?? null);
+                          else setHeroUploadError(null);
+                        }
                       }}
                       alt={label}
                       shape="landscape"
                       buttonLabel={t("store.appearance_section_upload")}
                       quietSuccess={key === "hero"}
                     />
+                    {key === "hero" && heroUploadError && (
+                      <p role="alert" className="mt-2 text-xs font-medium text-destructive">
+                        {heroUploadError}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1495,6 +1559,7 @@ export function AppearanceSettings() {
           title={previewTitle}
           subtitle={previewSubtitle}
           cta={previewCta}
+          secondaryCta={previewSecondaryCta}
         />
       </aside>
     </div>

@@ -421,6 +421,13 @@ describe("AppearanceSettings", () => {
     expect(previewWidget.getAttribute("data-contact-align")).toBe("left");
     expect(previewWidget.getAttribute("style")).toContain("right: 0.75rem");
     expect(previewWidget.getAttribute("style")).not.toContain("left:");
+
+    const panel = previewWidget.querySelector<HTMLElement>("[data-preview-contact-panel]")!;
+    const launcher = previewWidget.querySelector<HTMLButtonElement>("[data-preview-contact-launcher]")!;
+    expect(panel.hidden).toBe(true);
+    await click(launcher);
+    expect(panel.hidden).toBe(false);
+    expect(previewWidget.getAttribute("data-open")).toBe("true");
   });
 
   it("renders decoded header HTML and every configured contact icon in the preview", async () => {
@@ -451,6 +458,31 @@ describe("AppearanceSettings", () => {
       expect(preview.textContent).toContain(label);
     }
     expect(preview.querySelectorAll("svg").length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("keeps the live preview in a fixed scroll frame with the saved hero picture", async () => {
+    seam.appearance = {
+      ...appearance(),
+      sections: {
+        hero: {
+          hidden: false,
+          image: {
+            key: "products/hero.webp",
+            url: "https://cdn.test/products/hero.webp",
+            width: 1200,
+            height: 600,
+          },
+        },
+      },
+    } as any;
+    await render();
+
+    const scroll = host.querySelector<HTMLElement>("[data-preview-scroll]")!;
+    expect(scroll.className).toContain("overflow-y-auto");
+    expect(scroll.className).toContain("overflow-x-hidden");
+    expect(scroll.className).toContain("scroll-smooth");
+    expect(host.querySelector('aside img[src="https://cdn.test/products/hero.webp"]')).toBeTruthy();
+    expect(host.querySelectorAll("[data-preview-category-card]")).toHaveLength(3);
   });
 
   it("saves text edits without touching colors or storefront controls", async () => {
@@ -663,6 +695,18 @@ describe("AppearanceSettings", () => {
     expect(heroCard().querySelector("img")).toBeNull();
     expect(notify.error).toHaveBeenCalled();
     expect(notify.success).not.toHaveBeenCalled();
+  });
+
+  it("reports a failed hero save without crashing or keeping the unsaved picture", async () => {
+    await render();
+    seam.saveImpl = async () => { throw new Error("save failed"); };
+
+    await uploadHero();
+
+    expect(host.querySelector("[data-fallback]")).toBeNull();
+    expect(heroCard().querySelector("img")).toBeNull();
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("feedback.upload_failed");
+    expect(notify.error).toHaveBeenCalledWith("feedback.upload_failed");
   });
 
   it("keeps a just-uploaded hero picture when another Appearance card is saved", async () => {
